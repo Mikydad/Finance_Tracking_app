@@ -34,6 +34,8 @@ class FinanceApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Keeps background sync running while someone is signed in.
+    ref.watch(syncSchedulerProvider);
     return MaterialApp.router(
       title: 'Finance',
       theme: ThemeData(colorSchemeSeed: const Color(0xFF1B6E4E), useMaterial3: true),
