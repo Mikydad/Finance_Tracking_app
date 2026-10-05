@@ -38,3 +38,19 @@ jobs:
       - run: scripts/test-db.sh
         env:
           DATABASE_URL: postgresql://postgres@localhost:5432/postgres
+
+  mobile:
+    name: Flutter app
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
