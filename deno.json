@@ -1,0 +1,17 @@
+{
+  "tasks": {
+    "test": "deno test supabase/functions/",
+    "check": "deno check supabase/functions/ingest/index.ts",
+    "lint": "deno lint supabase/functions/",
+    "fmt": "deno fmt supabase/functions/",
+    "fmt:check": "deno fmt --check supabase/functions/"
+  },
+  "fmt": {
+    "lineWidth": 120
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  }
+}
