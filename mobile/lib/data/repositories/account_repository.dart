@@ -1,4 +1,5 @@
 import 'package:isar_community/isar.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../domain/account.dart';
 import '../local/models.dart';
@@ -10,6 +11,10 @@ abstract class AccountRepository {
 
   /// The Cash account, used for manual entries when no other account is picked.
   Future<Account?> cash();
+
+  /// For running without a backend: the Cash account, created on the phone
+  /// if missing. Never synced.
+  Future<Account> ensureLocalCash();
 }
 
 class IsarAccountRepository implements AccountRepository {
@@ -32,6 +37,18 @@ class IsarAccountRepository implements AccountRepository {
   Future<Account?> cash() async {
     final row = await _isar.localAccounts.filter().deletedAtIsNull().institutionEqualTo('cash').findFirst();
     return row == null ? null : _toDomain(row);
+  }
+
+  @override
+  Future<Account> ensureLocalCash() async {
+    final existing = await cash();
+    if (existing != null) return existing;
+    final row = LocalAccount()
+      ..uuid = const Uuid().v7()
+      ..name = 'Cash'
+      ..institution = 'cash';
+    await _isar.writeTxn(() => _isar.localAccounts.put(row));
+    return _toDomain(row);
   }
 
   static Account _toDomain(LocalAccount a) =>

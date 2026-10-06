@@ -144,6 +144,7 @@ class SyncEngine {
           ..fee = (r['fee'] as num? ?? 0).toInt()
           ..currency = (r['currency'] as String? ?? 'ETB').trim()
           ..occurredAt = DateTime.parse(r['occurred_at'] as String)
+          ..sourceId = r['source_id'] as String?
           ..counterpartyName = r['counterparty_name'] as String? ?? r['merchant_name'] as String?
           ..counterpartyKind = r['counterparty_kind'] as String?
           ..categoryId = r['category_id'] as String?
@@ -183,8 +184,15 @@ class SyncEngine {
           ..deletedAt = _date(r['deleted_at'])
           ..serverVersion = (r['server_version'] as num).toInt();
         await _isar.localAccounts.put(a);
+      case 'transaction_sources':
+        final src = await _isar.localSources.getByUuid(id) ?? (LocalSource()..uuid = id);
+        src
+          ..type = r['type'] as String? ?? 'other'
+          ..deletedAt = _date(r['deleted_at'])
+          ..serverVersion = (r['server_version'] as num).toInt();
+        await _isar.localSources.put(src);
       default:
-        // Profiles, sources and rules aren't stored on the phone yet.
+        // Profiles and rules aren't stored on the phone yet.
         return false;
     }
     return true;

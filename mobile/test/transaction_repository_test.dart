@@ -68,4 +68,101 @@ void main() {
   test('rejects non-positive amounts', () {
     expect(() => repo.add(accountId: 'a', type: TransactionType.expense, amount: 0), throwsArgumentError);
   });
+
+  test('update writes only the changed columns and marks a picked category as the user\'s', () async {
+    final t = await repo.add(accountId: 'a', type: TransactionType.expense, amount: 1000, counterpartyName: 'Shop');
+    await isar.writeTxn(() => isar.outboxOps.clear());
+
+    await repo.update(t.copyWith(amount: 1500, categoryId: () => 'cat-food', notes: () => 'with Hana'));
+
+    final op = (await isar.outboxOps.where().findAll()).single;
+    final payload = jsonDecode(op.payload) as Map<String, dynamic>;
+    expect(payload, {
+      'id': t.id,
+      'amount': 1500,
+      'notes': 'with Hana',
+      'category_id': 'cat-food',
+      'category_source': 'user',
+    });
+    final row = await isar.localTransactions.getByUuid(t.id);
+    expect((row!.amount, row.categorySource, row.notes), (1500, 'user', 'with Hana'));
+  });
+
+  test('editing a transaction that needs review confirms it', () async {
+    final t = await repo.add(accountId: 'a', type: TransactionType.expense, amount: 1000);
+    await isar.writeTxn(() async {
+      final row = (await isar.localTransactions.getByUuid(t.id))!
+        ..status = 'needs_review'
+        ..reviewReason = 'low_category_confidence';
+      await isar.localTransactions.put(row);
+      await isar.outboxOps.clear();
+    });
+
+    await repo.update(t.copyWith(categoryId: () => 'cat-family'));
+    final payload = jsonDecode((await isar.outboxOps.where().findAll()).single.payload) as Map<String, dynamic>;
+    expect(payload['status'], 'confirmed');
+    expect(payload.containsKey('review_reason'), isTrue);
+    expect(payload['review_reason'], isNull);
+  });
+
+  test('an update with no changes queues nothing', () async {
+    final t = await repo.add(accountId: 'a', type: TransactionType.expense, amount: 1000);
+    await isar.writeTxn(() => isar.outboxOps.clear());
+    await repo.update(t);
+    expect(await isar.outboxOps.count(), 0);
+  });
+
+  test('restore undoes a delete and queues deleted_at = null', () async {
+    final t = await repo.add(accountId: 'a', type: TransactionType.expense, amount: 1000);
+    await repo.delete(t.id);
+    expect(await repo.watchOne(t.id).first, isNull);
+
+    await repo.restore(t.id);
+    expect((await repo.watchOne(t.id).first)?.id, t.id);
+    final last = (await isar.outboxOps.where().findAll()).last;
+    expect(jsonDecode(last.payload), {'id': t.id, 'deleted_at': null});
+  });
+
+  test('watch filters by type and date range', () async {
+    await repo.add(accountId: 'a', type: TransactionType.expense, amount: 1, occurredAt: DateTime(2026, 9, 30));
+    final oct = await repo.add(
+      accountId: 'a',
+      type: TransactionType.expense,
+      amount: 2,
+      occurredAt: DateTime(2026, 10, 1),
+    );
+    await repo.add(accountId: 'a', type: TransactionType.income, amount: 3, occurredAt: DateTime(2026, 10, 2));
+
+    final octExpenses = await repo
+        .watch(type: TransactionType.expense, from: DateTime(2026, 10), to: DateTime(2026, 11))
+        .first;
+    expect(octExpenses.map((t) => t.id), [oct.id]);
+    expect((await repo.watch(type: TransactionType.income).first).single.amount, 3);
+  });
+
+  test('transactions from an SMS or Shortcut source are marked automatic', () async {
+    await isar.writeTxn(() async {
+      await isar.localSources.putAll([
+        LocalSource()
+          ..uuid = 'src-shortcut'
+          ..type = 'shortcut',
+        LocalSource()
+          ..uuid = 'src-manual'
+          ..type = 'manual',
+      ]);
+      await isar.localTransactions.putAll([
+        for (final (id, src) in [('t-auto', 'src-shortcut'), ('t-manual', 'src-manual'), ('t-none', null)])
+          LocalTransaction()
+            ..uuid = id
+            ..accountId = 'a'
+            ..type = 'expense'
+            ..amount = 100
+            ..occurredAt = now
+            ..sourceId = src
+            ..updatedAt = now,
+      ]);
+    });
+    final byId = {for (final t in await repo.watch().first) t.id: t.isAutomatic};
+    expect(byId, {'t-auto': true, 't-manual': false, 't-none': false});
+  });
 }

@@ -24,3 +24,9 @@ int? parseBirr(String input) {
   final santim = whole * 100 + fraction;
   return santim > 0 ? santim : null;
 }
+
+/// Like [formatBirr] but drops ".00" for whole amounts: "2,500", "12.50".
+String formatBirrCompact(int santim) {
+  final full = formatBirr(santim);
+  return full.endsWith('.00') ? full.substring(0, full.length - 3) : full;
+}
