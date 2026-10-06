@@ -74,8 +74,14 @@ Future<void> _refresh(BuildContext context, WidgetRef ref) async {
 /// Pushes what it can, warns about changes that would be lost, then signs out
 /// and clears the phone so the next account starts empty.
 Future<void> _signOut(BuildContext context, WidgetRef ref) async {
-  await ref.read(syncSchedulerProvider)?.syncNow();
-  final unsynced = await ref.read(syncEngineProvider)?.pendingCount() ?? 0;
+  // Read everything up front: signing out unmounts this screen, and `ref`
+  // can't be used after that.
+  final isar = ref.read(isarProvider);
+  final scheduler = ref.read(syncSchedulerProvider);
+  final engine = ref.read(syncEngineProvider);
+
+  await scheduler?.syncNow();
+  final unsynced = await engine?.pendingCount() ?? 0;
   if (unsynced > 0 && context.mounted) {
     final proceed = await showDialog<bool>(
       context: context,
@@ -95,7 +101,7 @@ Future<void> _signOut(BuildContext context, WidgetRef ref) async {
   }
   // Sign out first so no sync can write between the wipe and sign-out.
   await Supabase.instance.client.auth.signOut();
-  await clearLocalData(ref.read(isarProvider));
+  await clearLocalData(isar);
 }
 
 class _TxnTile extends StatelessWidget {
