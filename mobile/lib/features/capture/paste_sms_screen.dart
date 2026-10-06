@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/dates.dart';
 import '../../core/theme.dart';
 import '../../data/remote/capture_api.dart';
 import '../../providers.dart';
@@ -18,7 +19,13 @@ class PasteSmsScreen extends ConsumerStatefulWidget {
 
 class _PasteSmsScreenState extends ConsumerState<PasteSmsScreen> {
   final _text = TextEditingController();
+  final _scroll = ScrollController();
   String? _sender;
+
+  /// When the SMS arrived. Some banks (CBE, BOA) don't put a date in the
+  /// message, so an older SMS pasted today needs this to land on the right day.
+  /// Null means "just now".
+  DateTime? _receivedAt;
   bool _sending = false;
   IngestResult? _result;
   String? _error;
@@ -34,6 +41,7 @@ class _PasteSmsScreenState extends ConsumerState<PasteSmsScreen> {
   @override
   void dispose() {
     _text.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -51,6 +59,33 @@ class _PasteSmsScreenState extends ConsumerState<PasteSmsScreen> {
     });
   }
 
+  Future<void> _pickReceivedAt() async {
+    final now = DateTime.now();
+    final initial = _receivedAt ?? now;
+    final date = await showDatePicker(context: context, initialDate: initial, firstDate: DateTime(2015), lastDate: now);
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(initial));
+    if (!mounted) return;
+    final t = time ?? TimeOfDay.fromDateTime(initial);
+    final picked = DateTime(date.year, date.month, date.day, t.hour, t.minute);
+    setState(() {
+      _receivedAt = picked.isAfter(now) ? null : picked;
+      _result = null;
+    });
+  }
+
+  /// The result card sits below the form; scroll it into view.
+  void _showResult() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+      _scroll.animateTo(
+        _scroll.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   Future<void> _send() async {
     final api = ref.read(captureApiProvider);
     final text = _text.text.trim();
@@ -61,13 +96,15 @@ class _PasteSmsScreenState extends ConsumerState<PasteSmsScreen> {
       _result = null;
     });
     try {
-      final result = await api.ingest(text: text, sender: _sender);
+      final result = await api.ingest(text: text, sender: _sender, receivedAt: _receivedAt);
       if (!mounted) return;
       setState(() => _result = result);
+      _showResult();
       // Bring the new transaction down to the phone right away.
       await ref.read(syncSchedulerProvider)?.syncNow();
     } catch (_) {
       if (mounted) setState(() => _error = "Couldn't reach the server. Check your connection and try again.");
+      _showResult();
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -80,6 +117,7 @@ class _PasteSmsScreenState extends ConsumerState<PasteSmsScreen> {
       appBar: AppBar(title: const Text('Paste bank SMS'), centerTitle: true),
       body: SafeArea(
         child: ListView(
+          controller: _scroll,
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
             const Text(
@@ -113,6 +151,20 @@ class _PasteSmsScreenState extends ConsumerState<PasteSmsScreen> {
                 for (final (value, label) in _senders) DropdownMenuItem(value: value, child: Text(label)),
               ],
               onChanged: (v) => setState(() => _sender = v),
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              key: const Key('received-at'),
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.schedule, color: AppColors.muted),
+              title: const Text('Received'),
+              subtitle: Text(
+                _receivedAt == null
+                    ? 'Just now. Change it for an older message.'
+                    : '${dayLabel(_receivedAt!)} · ${clock(_receivedAt!)}',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _sending ? null : _pickReceivedAt,
             ),
             const SizedBox(height: 20),
             FilledButton(
