@@ -31,6 +31,36 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
+          if (hasBackend) ...[
+            Text('Transaction sources', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Card(
+              child: Column(
+                children: [
+                  ListTile(
+                    key: const Key('shortcut-setup'),
+                    leading: const Icon(Icons.bolt_outlined),
+                    title: const Text('iPhone Shortcut'),
+                    subtitle: Text(switch (ref.watch(ingestionTokensProvider).value) {
+                      null => ' ',
+                      [] => 'Not set up',
+                      final keys => keys.any((k) => k.lastUsedAt != null) ? 'Connected' : 'Key created, not used yet',
+                    }),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/settings/shortcut'),
+                  ),
+                  ListTile(
+                    key: const Key('paste-sms'),
+                    leading: const Icon(Icons.sms_outlined),
+                    title: const Text('Paste bank SMS'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/paste'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           Card(
             child: Column(
               children: [

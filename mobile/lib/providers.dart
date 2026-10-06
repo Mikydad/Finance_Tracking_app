@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config.dart';
 import 'data/local/models.dart';
+import 'data/remote/capture_api.dart';
 import 'data/repositories/account_repository.dart';
 import 'data/repositories/category_repository.dart';
 import 'data/repositories/transaction_repository.dart';
@@ -68,6 +69,16 @@ final sessionProvider = StreamProvider<Session?>((ref) {
   final auth = Supabase.instance.client.auth;
   return auth.onAuthStateChange.map((e) => e.session);
 });
+
+/// Sending bank SMS to the server; null when running without a backend.
+final captureApiProvider = Provider<CaptureApi?>(
+  (ref) => ref.watch(configProvider).hasBackend ? SupabaseCaptureApi(Supabase.instance.client) : null,
+);
+
+/// The Shortcut's active keys.
+final ingestionTokensProvider = FutureProvider<List<IngestionToken>>(
+  (ref) async => await ref.watch(captureApiProvider)?.tokens() ?? const [],
+);
 
 /// Null when running without a backend.
 final syncEngineProvider = Provider<SyncEngine?>((ref) {

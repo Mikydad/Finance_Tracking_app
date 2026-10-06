@@ -186,6 +186,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             onPressed: () => Navigator.of(context).maybePop(),
           ),
           title: Text(_editing ? 'Edit transaction' : 'Add transaction'),
+          actions: [
+            if (!_editing && ref.watch(configProvider).hasBackend)
+              IconButton(
+                key: const Key('from-sms'),
+                tooltip: 'Paste bank SMS',
+                icon: const Icon(Icons.sms_outlined),
+                onPressed: () => context.push('/paste'),
+              ),
+          ],
           centerTitle: true,
         ),
         body: SafeArea(

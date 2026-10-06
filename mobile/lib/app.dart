@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import 'core/theme.dart';
 import 'features/auth/sign_in_screen.dart';
+import 'features/capture/paste_sms_screen.dart';
+import 'features/capture/shortcut_setup_screen.dart';
 import 'features/categories/categories_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/settings/settings_screen.dart';
@@ -59,6 +61,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/transactions/:id/edit',
         builder: (_, state) => EditTransactionRoute(id: state.pathParameters['id']!),
       ),
+      GoRoute(path: '/paste', builder: (_, _) => const PasteSmsScreen()),
+      GoRoute(path: '/settings/shortcut', builder: (_, _) => const ShortcutSetupScreen()),
       GoRoute(path: '/categories', builder: (_, _) => const CategoriesScreen()),
       GoRoute(path: '/sign-in', builder: (_, _) => const SignInScreen()),
     ],
