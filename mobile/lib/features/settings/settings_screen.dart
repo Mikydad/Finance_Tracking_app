@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/theme.dart';
@@ -30,11 +31,22 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Card(
-            child: ListTile(
-              leading: Icon(Icons.payments_outlined),
-              title: Text('Currency'),
-              trailing: Text('Ethiopian Birr (ETB)', style: TextStyle(color: AppColors.muted)),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  key: const Key('manage-categories'),
+                  leading: const Icon(Icons.grid_view_outlined),
+                  title: const Text('Manage categories'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/categories'),
+                ),
+                const ListTile(
+                  leading: Icon(Icons.payments_outlined),
+                  title: Text('Currency'),
+                  trailing: Text('Ethiopian Birr (ETB)', style: TextStyle(color: AppColors.muted)),
+                ),
+              ],
             ),
           ),
           if (hasBackend) ...[

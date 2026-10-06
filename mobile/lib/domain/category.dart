@@ -10,6 +10,7 @@ class Category {
     this.color,
     this.kind = CategoryKind.expense,
     this.isCustom = false,
+    this.isArchived = false,
   });
 
   final String id;
@@ -24,6 +25,9 @@ class Category {
 
   /// Created by the user rather than one of the built-in defaults.
   final bool isCustom;
+
+  /// Hidden from pickers, still shown on old transactions.
+  final bool isArchived;
 
   bool get isTopLevel => parentId == null;
 

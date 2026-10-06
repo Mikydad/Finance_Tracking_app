@@ -149,7 +149,34 @@ class CategoryStyle {
     'payments': Icons.payments,
     'swap_horiz': Icons.swap_horiz,
     'more_horiz': Icons.more_horiz,
+    ...customIcons,
   };
+
+  /// Icons offered for custom categories, by the name stored on the server.
+  static const customIcons = <String, IconData>{
+    'label': Icons.label_outline,
+    'home': Icons.home_outlined,
+    'pets': Icons.pets,
+    'gift': Icons.card_giftcard,
+    'fitness': Icons.fitness_center,
+    'travel': Icons.flight,
+    'child': Icons.child_care,
+    'church': Icons.church,
+    'savings': Icons.savings_outlined,
+    'work': Icons.work_outline,
+    'clothes': Icons.checkroom,
+    'drinks': Icons.local_bar,
+    'beauty': Icons.spa_outlined,
+    'phone': Icons.phone_iphone,
+    'sport': Icons.sports_soccer,
+    'charity': Icons.volunteer_activism,
+  };
+
+  /// Colors offered for custom categories, stored as "#RRGGBB".
+  static const customColors = [
+    '#F28C38', '#EC5C9A', '#2F80ED', '#27AE60', '#8E59E8', '#EB5757', //
+    '#13A3A3', '#F2A93B', '#D6457A', '#2D6CDF', '#7C8580', '#0E4F3B',
+  ];
 
   static const uncategorized = CategoryStyle(Icons.help_outline, Color(0xFF9AA3A0));
 
