@@ -242,6 +242,17 @@ Deno.test("an unsure AI guess goes to review", async () => {
   assertEquals(store.txs[0].categoryKey, "shopping");
 });
 
+Deno.test("when the AI call fails, the transaction is still saved for review and nothing is cached", async () => {
+  const store = new MemoryStore();
+  const ai: AiCategorizer = { categorize: () => Promise.reject(new Error("OpenAI 500")) };
+  const r = await ingestMessage(store, req("T5"), { ...deps, ai });
+  assert(r.status === "created");
+  assertEquals(r.reviewReason, "low_category_confidence");
+  assertEquals(store.txs[0].categoryKey, "other");
+  assertEquals(store.txs[0].categorySource, "fallback");
+  assertEquals(store.cache.size, 0);
+});
+
 Deno.test("AI is never asked about money sent to a person", async () => {
   const store = new MemoryStore();
   const ai = new FakeAi({ categoryKey: "food", confidence: 0.99, model: "fake" });
