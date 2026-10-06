@@ -32,8 +32,35 @@ final categoryRepositoryProvider = Provider<CategoryRepository>(
 final recentTransactionsProvider = StreamProvider<List<Txn>>(
   (ref) => ref.watch(transactionRepositoryProvider).watchRecent(),
 );
+
+/// All transactions, or only one type (the Transactions screen filter).
+final transactionsProvider = StreamProvider.family<List<Txn>, TransactionType?>(
+  (ref, type) => ref.watch(transactionRepositoryProvider).watch(type: type),
+);
+
+/// Transactions from the start of last month on, for this-month totals and
+/// the comparison with last month.
+final lastTwoMonthsProvider = StreamProvider<List<Txn>>((ref) {
+  final now = DateTime.now();
+  return ref.watch(transactionRepositoryProvider).watch(from: DateTime(now.year, now.month - 1));
+});
+
+final transactionProvider = StreamProvider.family<Txn?, String>(
+  (ref, id) => ref.watch(transactionRepositoryProvider).watchOne(id),
+);
+
 final accountsProvider = StreamProvider<List<Account>>((ref) => ref.watch(accountRepositoryProvider).watchAll());
+
+/// Categories that can be picked (not archived).
 final categoriesProvider = StreamProvider<List<Category>>((ref) => ref.watch(categoryRepositoryProvider).watchAll());
+
+/// Every category by id, archived ones included, for showing transactions.
+final categoryByIdProvider = StreamProvider<Map<String, Category>>(
+  (ref) => ref
+      .watch(categoryRepositoryProvider)
+      .watchAll(includeArchived: true)
+      .map((list) => {for (final c in list) c.id: c}),
+);
 
 /// Signed-in session, or null. Always null when no backend is configured.
 final sessionProvider = StreamProvider<Session?>((ref) {

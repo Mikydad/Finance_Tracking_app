@@ -25,6 +25,9 @@ class LocalTransaction {
   @Index()
   late DateTime occurredAt;
 
+  /// transaction_sources id: tells SMS/Shortcut captures from manual ones.
+  String? sourceId;
+
   String? counterpartyName;
   String? counterpartyKind;
   String? categoryId;
@@ -75,6 +78,21 @@ class LocalAccount {
   String? maskedNumber;
   String currency = 'ETB';
   bool isActive = true;
+  DateTime? deletedAt;
+  int serverVersion = 0;
+}
+
+/// Where transactions come from (manual, sms, shortcut, ...). Read-only on
+/// the phone; used to label transactions as automatic or manual.
+@collection
+class LocalSource {
+  Id isarId = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late String uuid;
+
+  /// manual | sms | shortcut | bank | other
+  late String type;
   DateTime? deletedAt;
   int serverVersion = 0;
 }

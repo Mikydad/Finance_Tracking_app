@@ -7,6 +7,7 @@ const localSchemas = [
   LocalTransactionSchema,
   LocalCategorySchema,
   LocalAccountSchema,
+  LocalSourceSchema,
   OutboxOpSchema,
   SyncStateSchema,
 ];

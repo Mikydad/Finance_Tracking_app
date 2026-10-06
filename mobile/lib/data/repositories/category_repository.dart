@@ -6,8 +6,9 @@ import '../local/models.dart';
 /// Built-in and custom categories, synced from the server. Adding and
 /// renaming custom categories comes with the categories screen (task 2.4).
 abstract class CategoryRepository {
-  /// Live categories that aren't archived, in display order.
-  Stream<List<Category>> watchAll();
+  /// Live categories in display order; archived ones only when asked, e.g.
+  /// to show the category of an old transaction.
+  Stream<List<Category>> watchAll({bool includeArchived = false});
 }
 
 class IsarCategoryRepository implements CategoryRepository {
@@ -16,11 +17,11 @@ class IsarCategoryRepository implements CategoryRepository {
   final Isar _isar;
 
   @override
-  Stream<List<Category>> watchAll() {
+  Stream<List<Category>> watchAll({bool includeArchived = false}) {
     return _isar.localCategorys
         .filter()
         .deletedAtIsNull()
-        .isArchivedEqualTo(false)
+        .optional(!includeArchived, (q) => q.isArchivedEqualTo(false))
         .sortBySortOrder()
         .thenByName()
         .watch(fireImmediately: true)

@@ -24,4 +24,13 @@ class Category {
 
   /// Created by the user rather than one of the built-in defaults.
   final bool isCustom;
+
+  bool get isTopLevel => parentId == null;
+
+  /// Whether it makes sense for a transaction of this kind.
+  bool fits(String transactionType) => switch (transactionType) {
+    'expense' => kind != CategoryKind.income,
+    'income' => kind != CategoryKind.expense,
+    _ => true,
+  };
 }
