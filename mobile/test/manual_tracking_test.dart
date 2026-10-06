@@ -194,6 +194,49 @@ void main() {
     expect(find.byKey(const Key('category-transport')), findsNothing);
   });
 
+  testWidgets('add: closing an untouched form leaves at once; a started one asks first', (tester) async {
+    await pumpApp(tester, '/start');
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('close')));
+    await tester.pumpAndSettle();
+    expect(find.text('open'), findsOneWidget);
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('amount')), '300');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('close')));
+    await tester.pumpAndSettle();
+    expect(find.text('Discard this transaction?'), findsOneWidget);
+
+    await tester.tap(find.text('Keep editing'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('amount')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('close')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Discard'));
+    await tester.pumpAndSettle();
+    expect(find.text('open'), findsOneWidget);
+  });
+
+  testWidgets('add: the amount field ignores letters', (tester) async {
+    await pumpApp(tester, '/add');
+    await tester.enterText(find.byKey(const Key('amount')), 'a1b2,5x0.5');
+    expect(tester.widget<TextField>(find.byKey(const Key('amount'))).controller!.text, '12,50.5');
+  });
+
+  testWidgets('the "Transaction deleted" message goes away on its own', (tester) async {
+    await pumpApp(tester, '/transactions', txns: [txn('Lunch', DateTime.now(), 50000)]);
+    await tester.drag(find.text('Lunch'), const Offset(-500, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Transaction deleted'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+    expect(find.text('Transaction deleted'), findsNothing);
+  });
+
   testWidgets('transactions: grouped by day, filtered by type, swipe deletes with undo', (tester) async {
     final today = DateTime.now();
     final yesterday = today.subtract(const Duration(days: 1));

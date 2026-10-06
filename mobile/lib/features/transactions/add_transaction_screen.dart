@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -39,6 +40,39 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   bool get _editing => widget.existing != null;
 
+  /// The form's starting values, to tell whether anything was changed.
+  late final List<Object?> _initial = _snapshot();
+
+  List<Object?> _snapshot() => [_type, _amount.text, _what.text, _notes.text, _categoryId, _accountId, _when];
+
+  bool get _dirty {
+    final now = _snapshot();
+    for (var i = 0; i < now.length; i++) {
+      if (now[i] != _initial[i]) return true;
+    }
+    return false;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _initial; // capture before any edits
+  }
+
+  Future<void> _confirmDiscard() async {
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(_editing ? 'Discard your changes?' : 'Discard this transaction?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep editing')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Discard')),
+        ],
+      ),
+    );
+    if (discard == true && mounted) context.pop();
+  }
+
   @override
   void dispose() {
     _amount.dispose();
@@ -50,18 +84,21 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   }
 
   Future<void> _pickDateTime() async {
+    final now = DateTime.now();
     final date = await showDatePicker(
       context: context,
       initialDate: _when,
       firstDate: DateTime(2015),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
+      lastDate: _when.isAfter(now) ? _when : now,
     );
     if (date == null || !mounted) return;
     final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_when));
     if (!mounted) return;
     setState(() {
       final t = time ?? TimeOfDay.fromDateTime(_when);
-      _when = DateTime(date.year, date.month, date.day, t.hour, t.minute);
+      final picked = DateTime(date.year, date.month, date.day, t.hour, t.minute);
+      // A later time today would be in the future; use now instead.
+      _when = picked.isAfter(now) ? now : picked;
     });
   }
 
@@ -136,97 +173,111 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         .toList();
     final accounts = ref.watch(accountsProvider).value ?? const <Account>[];
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => context.pop()),
-        title: Text(_editing ? 'Edit transaction' : 'Add transaction'),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: ListView(
-          controller: _scroll,
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          children: [
-            SegmentedButton<TransactionType>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: TransactionType.expense, label: Text('Expense')),
-                ButtonSegment(value: TransactionType.income, label: Text('Income')),
-                ButtonSegment(value: TransactionType.transfer, label: Text('Transfer')),
-              ],
-              selected: {_type},
-              onSelectionChanged: (s) => setState(() => _type = s.single),
-            ),
-            const SizedBox(height: 24),
-            Text('How much?', style: theme.textTheme.titleSmall?.copyWith(color: AppColors.muted)),
-            TextField(
-              key: const Key('amount'),
-              controller: _amount,
-              focusNode: _amountFocus,
-              autofocus: !_editing,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: theme.textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w700),
-              decoration: InputDecoration(
-                hintText: '0',
-                suffixText: 'ETB',
-                errorText: _amountError,
-                filled: false,
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
+    return PopScope(
+      canPop: !_dirty,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _confirmDiscard();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            key: const Key('close'),
+            icon: const Icon(Icons.close),
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+          title: Text(_editing ? 'Edit transaction' : 'Add transaction'),
+          centerTitle: true,
+        ),
+        body: SafeArea(
+          child: ListView(
+            controller: _scroll,
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            children: [
+              SegmentedButton<TransactionType>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: TransactionType.expense, label: Text('Expense')),
+                  ButtonSegment(value: TransactionType.income, label: Text('Income')),
+                  ButtonSegment(value: TransactionType.transfer, label: Text('Transfer')),
+                ],
+                selected: {_type},
+                onSelectionChanged: (s) => setState(() => _type = s.single),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text('What was it?', style: theme.textTheme.titleSmall?.copyWith(color: AppColors.muted)),
-            const SizedBox(height: 8),
-            TextField(
-              key: const Key('what'),
-              controller: _what,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(hintText: 'e.g. ABC Store, Lunch, Abebe'),
-            ),
-            const SizedBox(height: 24),
-            Text('Category', style: theme.textTheme.titleSmall?.copyWith(color: AppColors.muted)),
-            const SizedBox(height: 12),
-            if (categories.isEmpty)
-              const Text('Categories appear after the first sync.', style: TextStyle(color: AppColors.muted))
-            else
-              _CategoryGrid(
-                categories: categories,
-                selectedId: _categoryId,
-                onSelected: (id) => setState(() => _categoryId = _categoryId == id ? null : id),
+              const SizedBox(height: 24),
+              Text('How much?', style: theme.textTheme.titleSmall?.copyWith(color: AppColors.muted)),
+              TextField(
+                key: const Key('amount'),
+                controller: _amount,
+                onChanged: (_) => setState(() {}),
+                focusNode: _amountFocus,
+                autofocus: !_editing,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+                style: theme.textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w700),
+                decoration: InputDecoration(
+                  hintText: '0',
+                  suffixText: 'ETB',
+                  errorText: _amountError,
+                  filled: false,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                ),
               ),
-            const SizedBox(height: 24),
-            Text('Date', style: theme.textTheme.titleSmall?.copyWith(color: AppColors.muted)),
-            const SizedBox(height: 8),
-            _FieldButton(
-              icon: Icons.calendar_today_outlined,
-              label: '${dayLabel(_when)} · ${clock(_when)}',
-              onTap: _pickDateTime,
-            ),
-            if (accounts.length > 1) ...[
               const SizedBox(height: 16),
-              Text('Paid from', style: theme.textTheme.titleSmall?.copyWith(color: AppColors.muted)),
+              Text('What was it?', style: theme.textTheme.titleSmall?.copyWith(color: AppColors.muted)),
               const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: _accountId ?? accounts.where((a) => a.isCash).firstOrNull?.id,
-                items: [for (final a in accounts) DropdownMenuItem(value: a.id, child: Text(a.name))],
-                onChanged: (id) => setState(() => _accountId = id),
+              TextField(
+                key: const Key('what'),
+                controller: _what,
+                onChanged: (_) => setState(() {}),
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(hintText: 'e.g. ABC Store, Lunch, Abebe'),
+              ),
+              const SizedBox(height: 24),
+              Text('Category', style: theme.textTheme.titleSmall?.copyWith(color: AppColors.muted)),
+              const SizedBox(height: 12),
+              if (categories.isEmpty)
+                const Text('Categories appear after the first sync.', style: TextStyle(color: AppColors.muted))
+              else
+                _CategoryGrid(
+                  categories: categories,
+                  selectedId: _categoryId,
+                  onSelected: (id) => setState(() => _categoryId = _categoryId == id ? null : id),
+                ),
+              const SizedBox(height: 24),
+              Text('Date', style: theme.textTheme.titleSmall?.copyWith(color: AppColors.muted)),
+              const SizedBox(height: 8),
+              _FieldButton(
+                icon: Icons.calendar_today_outlined,
+                label: '${dayLabel(_when)} · ${clock(_when)}',
+                onTap: _pickDateTime,
+              ),
+              if (accounts.length > 1) ...[
+                const SizedBox(height: 16),
+                Text('Paid from', style: theme.textTheme.titleSmall?.copyWith(color: AppColors.muted)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: _accountId ?? accounts.where((a) => a.isCash).firstOrNull?.id,
+                  items: [for (final a in accounts) DropdownMenuItem(value: a.id, child: Text(a.name))],
+                  onChanged: (id) => setState(() => _accountId = id),
+                ),
+              ],
+              const SizedBox(height: 16),
+              TextField(
+                controller: _notes,
+                onChanged: (_) => setState(() {}),
+                maxLines: 2,
+                decoration: const InputDecoration(hintText: 'Add a note (optional)'),
+              ),
+              const SizedBox(height: 28),
+              FilledButton(
+                key: const Key('save'),
+                onPressed: _saving ? null : _save,
+                child: Text(_editing ? 'Save changes' : 'Add transaction'),
               ),
             ],
-            const SizedBox(height: 16),
-            TextField(
-              controller: _notes,
-              maxLines: 2,
-              decoration: const InputDecoration(hintText: 'Add a note (optional)'),
-            ),
-            const SizedBox(height: 28),
-            FilledButton(
-              key: const Key('save'),
-              onPressed: _saving ? null : _save,
-              child: Text(_editing ? 'Save changes' : 'Add transaction'),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -284,11 +335,17 @@ class _CategoryCell extends StatelessWidget {
             children: [
               CategoryIcon(category, size: 32),
               const SizedBox(height: 6),
-              Text(
-                category.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 12, color: selected ? Colors.white : AppColors.text),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                // Shrinks long names like "Entertainment" instead of cutting them off.
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    category.name,
+                    maxLines: 1,
+                    style: TextStyle(fontSize: 12, color: selected ? Colors.white : AppColors.text),
+                  ),
+                ),
               ),
             ],
           ),

@@ -12,6 +12,9 @@ Future<void> deleteWithUndo(BuildContext context, WidgetRef ref, String id) asyn
     ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
+        // Snackbars with an action stay up until dismissed unless told otherwise.
+        persist: false,
+        duration: const Duration(seconds: 5),
         content: const Text('Transaction deleted'),
         action: SnackBarAction(label: 'Undo', onPressed: () => repo.restore(id)),
       ),
