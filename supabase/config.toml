@@ -244,6 +244,12 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Sign-up is confirmed with a code typed into the app (no link back to a web page).
+# The hosted project needs the same template: Authentication > Emails > Confirm signup.
+[auth.email.template.confirmation]
+subject = "Your Finance app code"
+content_path = "./supabase/templates/confirmation.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"
