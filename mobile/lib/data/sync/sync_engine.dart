@@ -147,6 +147,7 @@ class SyncEngine {
           ..sourceId = r['source_id'] as String?
           ..counterpartyName = r['counterparty_name'] as String? ?? r['merchant_name'] as String?
           ..counterpartyKind = r['counterparty_kind'] as String?
+          ..counterpartyAccount = r['counterparty_account'] as String?
           ..categoryId = r['category_id'] as String?
           ..categorySource = r['category_source'] as String?
           ..description = r['description'] as String?

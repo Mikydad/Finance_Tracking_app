@@ -14,6 +14,7 @@ class Txn {
     this.fee = 0,
     this.currency = 'ETB',
     this.counterpartyName,
+    this.counterpartyAccount,
     this.categoryId,
     this.categorySource,
     this.description,
@@ -34,6 +35,9 @@ class Txn {
   final String currency;
   final DateTime occurredAt;
   final String? counterpartyName;
+
+  /// Masked account or phone number of the other side, e.g. `2519****1122`.
+  final String? counterpartyAccount;
   final String? categoryId;
 
   /// How the category was chosen: user, rule, merchant_map, keyword, ai, fallback.
@@ -41,6 +45,8 @@ class Txn {
 
   /// What the bank said, e.g. "CBE Fast Loan repayment".
   final String? description;
+
+  /// What it was for: typed by the user or read from the bank receipt.
   final String? notes;
 
   /// The bank's own transaction ID, when captured from an SMS.
@@ -80,6 +86,7 @@ class Txn {
     fee: fee,
     currency: currency,
     counterpartyName: counterpartyName == null ? this.counterpartyName : counterpartyName(),
+    counterpartyAccount: counterpartyAccount,
     categoryId: categoryId == null ? this.categoryId : categoryId(),
     categorySource: categorySource,
     description: description,

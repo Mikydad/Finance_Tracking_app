@@ -11,6 +11,7 @@ import 'features/home/home_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/shell/app_shell.dart';
 import 'features/transactions/add_transaction_screen.dart';
+import 'features/transactions/related_screen.dart';
 import 'features/transactions/transaction_detail_screen.dart';
 import 'features/transactions/transactions_screen.dart';
 import 'providers.dart';
@@ -60,6 +61,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/transactions/:id/edit',
         builder: (_, state) => EditTransactionRoute(id: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/transactions/:id/related',
+        builder: (_, state) => RelatedScreen(id: state.pathParameters['id']!),
       ),
       GoRoute(path: '/paste', builder: (_, _) => const PasteSmsScreen()),
       GoRoute(path: '/settings/shortcut', builder: (_, _) => const ShortcutSetupScreen()),

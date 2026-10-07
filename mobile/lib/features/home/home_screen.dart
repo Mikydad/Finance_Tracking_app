@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/dates.dart';
@@ -9,7 +10,7 @@ import '../../domain/category.dart';
 import '../../domain/transaction.dart';
 import '../../providers.dart';
 import '../../widgets/category_icon.dart';
-import '../../widgets/txn_tile.dart';
+import '../../widgets/swipe_txn_tile.dart';
 
 /// Spent this month, where it went by category, and the latest transactions.
 class HomeScreen extends ConsumerWidget {
@@ -77,11 +78,11 @@ class HomeScreen extends ConsumerWidget {
                   )
                 else
                   Card(
-                    child: Column(
-                      children: [
-                        for (final t in list.take(5))
-                          TxnTile(txn: t, categories: categories, onTap: () => context.push('/transactions/${t.id}')),
-                      ],
+                    clipBehavior: Clip.antiAlias,
+                    child: SlidableAutoCloseBehavior(
+                      child: Column(
+                        children: [for (final t in list.take(5)) SwipeTxnTile(txn: t, categories: categories)],
+                      ),
                     ),
                   ),
               ],

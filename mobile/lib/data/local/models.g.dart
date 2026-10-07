@@ -33,66 +33,81 @@ const LocalTransactionSchema = CollectionSchema(
       name: r'categorySource',
       type: IsarType.string,
     ),
-    r'counterpartyKind': PropertySchema(
+    r'counterpartyAccount': PropertySchema(
       id: 4,
+      name: r'counterpartyAccount',
+      type: IsarType.string,
+    ),
+    r'counterpartyKind': PropertySchema(
+      id: 5,
       name: r'counterpartyKind',
       type: IsarType.string,
     ),
     r'counterpartyName': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'counterpartyName',
       type: IsarType.string,
     ),
     r'currency': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'currency',
       type: IsarType.string,
     ),
     r'deletedAt': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'deletedAt',
       type: IsarType.dateTime,
     ),
     r'description': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'description',
       type: IsarType.string,
     ),
-    r'fee': PropertySchema(id: 9, name: r'fee', type: IsarType.long),
-    r'notes': PropertySchema(id: 10, name: r'notes', type: IsarType.string),
+    r'fee': PropertySchema(id: 10, name: r'fee', type: IsarType.long),
+    r'notes': PropertySchema(id: 11, name: r'notes', type: IsarType.string),
     r'occurredAt': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'occurredAt',
       type: IsarType.dateTime,
     ),
+    r'receiptAttempts': PropertySchema(
+      id: 13,
+      name: r'receiptAttempts',
+      type: IsarType.long,
+    ),
+    r'receiptCheckedAt': PropertySchema(
+      id: 14,
+      name: r'receiptCheckedAt',
+      type: IsarType.dateTime,
+    ),
     r'referenceId': PropertySchema(
-      id: 12,
+      id: 15,
       name: r'referenceId',
       type: IsarType.string,
     ),
     r'reviewReason': PropertySchema(
-      id: 13,
+      id: 16,
       name: r'reviewReason',
       type: IsarType.string,
     ),
     r'serverVersion': PropertySchema(
-      id: 14,
+      id: 17,
       name: r'serverVersion',
       type: IsarType.long,
     ),
     r'sourceId': PropertySchema(
-      id: 15,
+      id: 18,
       name: r'sourceId',
       type: IsarType.string,
     ),
-    r'status': PropertySchema(id: 16, name: r'status', type: IsarType.string),
-    r'type': PropertySchema(id: 17, name: r'type', type: IsarType.string),
+    r'status': PropertySchema(id: 19, name: r'status', type: IsarType.string),
+    r'type': PropertySchema(id: 20, name: r'type', type: IsarType.string),
     r'updatedAt': PropertySchema(
-      id: 18,
+      id: 21,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
-    r'uuid': PropertySchema(id: 19, name: r'uuid', type: IsarType.string),
+    r'uuid': PropertySchema(id: 22, name: r'uuid', type: IsarType.string),
   },
 
   estimateSize: _localTransactionEstimateSize,
@@ -170,6 +185,12 @@ int _localTransactionEstimateSize(
     }
   }
   {
+    final value = object.counterpartyAccount;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.counterpartyKind;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -228,22 +249,25 @@ void _localTransactionSerialize(
   writer.writeLong(offsets[1], object.amount);
   writer.writeString(offsets[2], object.categoryId);
   writer.writeString(offsets[3], object.categorySource);
-  writer.writeString(offsets[4], object.counterpartyKind);
-  writer.writeString(offsets[5], object.counterpartyName);
-  writer.writeString(offsets[6], object.currency);
-  writer.writeDateTime(offsets[7], object.deletedAt);
-  writer.writeString(offsets[8], object.description);
-  writer.writeLong(offsets[9], object.fee);
-  writer.writeString(offsets[10], object.notes);
-  writer.writeDateTime(offsets[11], object.occurredAt);
-  writer.writeString(offsets[12], object.referenceId);
-  writer.writeString(offsets[13], object.reviewReason);
-  writer.writeLong(offsets[14], object.serverVersion);
-  writer.writeString(offsets[15], object.sourceId);
-  writer.writeString(offsets[16], object.status);
-  writer.writeString(offsets[17], object.type);
-  writer.writeDateTime(offsets[18], object.updatedAt);
-  writer.writeString(offsets[19], object.uuid);
+  writer.writeString(offsets[4], object.counterpartyAccount);
+  writer.writeString(offsets[5], object.counterpartyKind);
+  writer.writeString(offsets[6], object.counterpartyName);
+  writer.writeString(offsets[7], object.currency);
+  writer.writeDateTime(offsets[8], object.deletedAt);
+  writer.writeString(offsets[9], object.description);
+  writer.writeLong(offsets[10], object.fee);
+  writer.writeString(offsets[11], object.notes);
+  writer.writeDateTime(offsets[12], object.occurredAt);
+  writer.writeLong(offsets[13], object.receiptAttempts);
+  writer.writeDateTime(offsets[14], object.receiptCheckedAt);
+  writer.writeString(offsets[15], object.referenceId);
+  writer.writeString(offsets[16], object.reviewReason);
+  writer.writeLong(offsets[17], object.serverVersion);
+  writer.writeString(offsets[18], object.sourceId);
+  writer.writeString(offsets[19], object.status);
+  writer.writeString(offsets[20], object.type);
+  writer.writeDateTime(offsets[21], object.updatedAt);
+  writer.writeString(offsets[22], object.uuid);
 }
 
 LocalTransaction _localTransactionDeserialize(
@@ -257,23 +281,26 @@ LocalTransaction _localTransactionDeserialize(
   object.amount = reader.readLong(offsets[1]);
   object.categoryId = reader.readStringOrNull(offsets[2]);
   object.categorySource = reader.readStringOrNull(offsets[3]);
-  object.counterpartyKind = reader.readStringOrNull(offsets[4]);
-  object.counterpartyName = reader.readStringOrNull(offsets[5]);
-  object.currency = reader.readString(offsets[6]);
-  object.deletedAt = reader.readDateTimeOrNull(offsets[7]);
-  object.description = reader.readStringOrNull(offsets[8]);
-  object.fee = reader.readLong(offsets[9]);
+  object.counterpartyAccount = reader.readStringOrNull(offsets[4]);
+  object.counterpartyKind = reader.readStringOrNull(offsets[5]);
+  object.counterpartyName = reader.readStringOrNull(offsets[6]);
+  object.currency = reader.readString(offsets[7]);
+  object.deletedAt = reader.readDateTimeOrNull(offsets[8]);
+  object.description = reader.readStringOrNull(offsets[9]);
+  object.fee = reader.readLong(offsets[10]);
   object.isarId = id;
-  object.notes = reader.readStringOrNull(offsets[10]);
-  object.occurredAt = reader.readDateTime(offsets[11]);
-  object.referenceId = reader.readStringOrNull(offsets[12]);
-  object.reviewReason = reader.readStringOrNull(offsets[13]);
-  object.serverVersion = reader.readLong(offsets[14]);
-  object.sourceId = reader.readStringOrNull(offsets[15]);
-  object.status = reader.readString(offsets[16]);
-  object.type = reader.readString(offsets[17]);
-  object.updatedAt = reader.readDateTime(offsets[18]);
-  object.uuid = reader.readString(offsets[19]);
+  object.notes = reader.readStringOrNull(offsets[11]);
+  object.occurredAt = reader.readDateTime(offsets[12]);
+  object.receiptAttempts = reader.readLong(offsets[13]);
+  object.receiptCheckedAt = reader.readDateTimeOrNull(offsets[14]);
+  object.referenceId = reader.readStringOrNull(offsets[15]);
+  object.reviewReason = reader.readStringOrNull(offsets[16]);
+  object.serverVersion = reader.readLong(offsets[17]);
+  object.sourceId = reader.readStringOrNull(offsets[18]);
+  object.status = reader.readString(offsets[19]);
+  object.type = reader.readString(offsets[20]);
+  object.updatedAt = reader.readDateTime(offsets[21]);
+  object.uuid = reader.readString(offsets[22]);
   return object;
 }
 
@@ -297,32 +324,38 @@ P _localTransactionDeserializeProp<P>(
     case 5:
       return (reader.readStringOrNull(offset)) as P;
     case 6:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 7:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 9:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
-      return (reader.readStringOrNull(offset)) as P;
-    case 11:
-      return (reader.readDateTime(offset)) as P;
-    case 12:
-      return (reader.readStringOrNull(offset)) as P;
-    case 13:
-      return (reader.readStringOrNull(offset)) as P;
-    case 14:
       return (reader.readLong(offset)) as P;
+    case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
+      return (reader.readDateTime(offset)) as P;
+    case 13:
+      return (reader.readLong(offset)) as P;
+    case 14:
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 15:
       return (reader.readStringOrNull(offset)) as P;
     case 16:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 17:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 18:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 19:
+      return (reader.readString(offset)) as P;
+    case 20:
+      return (reader.readString(offset)) as P;
+    case 21:
+      return (reader.readDateTime(offset)) as P;
+    case 22:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1208,6 +1241,168 @@ extension LocalTransactionQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'categorySource', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  counterpartyAccountIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'counterpartyAccount'),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  counterpartyAccountIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'counterpartyAccount'),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  counterpartyAccountEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'counterpartyAccount',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  counterpartyAccountGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'counterpartyAccount',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  counterpartyAccountLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'counterpartyAccount',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  counterpartyAccountBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'counterpartyAccount',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  counterpartyAccountStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'counterpartyAccount',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  counterpartyAccountEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'counterpartyAccount',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  counterpartyAccountContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'counterpartyAccount',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  counterpartyAccountMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'counterpartyAccount',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  counterpartyAccountIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'counterpartyAccount', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  counterpartyAccountIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          property: r'counterpartyAccount',
+          value: '',
+        ),
       );
     });
   }
@@ -2218,6 +2413,134 @@ extension LocalTransactionQueryFilter
       return query.addFilterCondition(
         FilterCondition.between(
           property: r'occurredAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  receiptAttemptsEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'receiptAttempts', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  receiptAttemptsGreaterThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'receiptAttempts',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  receiptAttemptsLessThan(int value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'receiptAttempts',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  receiptAttemptsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'receiptAttempts',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  receiptCheckedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'receiptCheckedAt'),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  receiptCheckedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'receiptCheckedAt'),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  receiptCheckedAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'receiptCheckedAt', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  receiptCheckedAtGreaterThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'receiptCheckedAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  receiptCheckedAtLessThan(DateTime? value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'receiptCheckedAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterFilterCondition>
+  receiptCheckedAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'receiptCheckedAt',
           lower: lower,
           includeLower: includeLower,
           upper: upper,
@@ -3303,6 +3626,20 @@ extension LocalTransactionQuerySortBy
   }
 
   QueryBuilder<LocalTransaction, LocalTransaction, QAfterSortBy>
+  sortByCounterpartyAccount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'counterpartyAccount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterSortBy>
+  sortByCounterpartyAccountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'counterpartyAccount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterSortBy>
   sortByCounterpartyKind() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'counterpartyKind', Sort.asc);
@@ -3409,6 +3746,34 @@ extension LocalTransactionQuerySortBy
   sortByOccurredAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'occurredAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterSortBy>
+  sortByReceiptAttempts() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receiptAttempts', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterSortBy>
+  sortByReceiptAttemptsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receiptAttempts', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterSortBy>
+  sortByReceiptCheckedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receiptCheckedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterSortBy>
+  sortByReceiptCheckedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receiptCheckedAt', Sort.desc);
     });
   }
 
@@ -3582,6 +3947,20 @@ extension LocalTransactionQuerySortThenBy
   }
 
   QueryBuilder<LocalTransaction, LocalTransaction, QAfterSortBy>
+  thenByCounterpartyAccount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'counterpartyAccount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterSortBy>
+  thenByCounterpartyAccountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'counterpartyAccount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterSortBy>
   thenByCounterpartyKind() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'counterpartyKind', Sort.asc);
@@ -3702,6 +4081,34 @@ extension LocalTransactionQuerySortThenBy
   thenByOccurredAtDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'occurredAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterSortBy>
+  thenByReceiptAttempts() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receiptAttempts', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterSortBy>
+  thenByReceiptAttemptsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receiptAttempts', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterSortBy>
+  thenByReceiptCheckedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receiptCheckedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QAfterSortBy>
+  thenByReceiptCheckedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receiptCheckedAt', Sort.desc);
     });
   }
 
@@ -3850,6 +4257,16 @@ extension LocalTransactionQueryWhereDistinct
   }
 
   QueryBuilder<LocalTransaction, LocalTransaction, QDistinct>
+  distinctByCounterpartyAccount({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'counterpartyAccount',
+        caseSensitive: caseSensitive,
+      );
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QDistinct>
   distinctByCounterpartyKind({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(
@@ -3908,6 +4325,20 @@ extension LocalTransactionQueryWhereDistinct
   distinctByOccurredAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'occurredAt');
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QDistinct>
+  distinctByReceiptAttempts() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'receiptAttempts');
+    });
+  }
+
+  QueryBuilder<LocalTransaction, LocalTransaction, QDistinct>
+  distinctByReceiptCheckedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'receiptCheckedAt');
     });
   }
 
@@ -4006,6 +4437,13 @@ extension LocalTransactionQueryProperty
   }
 
   QueryBuilder<LocalTransaction, String?, QQueryOperations>
+  counterpartyAccountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'counterpartyAccount');
+    });
+  }
+
+  QueryBuilder<LocalTransaction, String?, QQueryOperations>
   counterpartyKindProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'counterpartyKind');
@@ -4055,6 +4493,20 @@ extension LocalTransactionQueryProperty
   occurredAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'occurredAt');
+    });
+  }
+
+  QueryBuilder<LocalTransaction, int, QQueryOperations>
+  receiptAttemptsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'receiptAttempts');
+    });
+  }
+
+  QueryBuilder<LocalTransaction, DateTime?, QQueryOperations>
+  receiptCheckedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'receiptCheckedAt');
     });
   }
 

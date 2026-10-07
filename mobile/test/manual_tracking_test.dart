@@ -88,6 +88,36 @@ class FakeTransactions extends TransactionRepository {
     deleted.remove(id);
     _changes.add(null);
   }
+
+  @override
+  Future<void> updateNotes(String id, String? notes) async {
+    final i = rows.indexWhere((t) => t.id == id);
+    rows[i] = rows[i].copyWith(notes: () => notes);
+    _changes.add(null);
+  }
+
+  @override
+  Stream<List<Txn>> watchRelated(Txn txn) => _watch(
+    () => _live
+        .where((t) => t.id != txn.id && t.counterpartyName != null && t.counterpartyName == txn.counterpartyName)
+        .toList(),
+  );
+
+  @override
+  Future<String?> learnedCategory({String? name, String? account}) async => null;
+
+  @override
+  Future<int> applyLearnedCategories() async => 0;
+
+  @override
+  Future<List<({Txn txn, String institution})>> receiptCandidates({required DateTime since, int limit = 10}) async =>
+      const [];
+
+  @override
+  Future<void> applyReceipt(String id, {String? reason, String? counterpartyName, String? counterpartyAccount}) async {}
+
+  @override
+  Future<void> receiptFailed(String id, {int maxAttempts = 3}) async {}
 }
 
 class FakeAccounts implements AccountRepository {
@@ -136,6 +166,8 @@ Future<FakeTransactions> pumpApp(WidgetTester tester, String location, {List<Txn
         path: '/transactions/:id',
         builder: (_, s) => TransactionDetailScreen(id: s.pathParameters['id']!),
       ),
+      GoRoute(path: '/transactions/:id/edit', builder: (_, s) => Text('editing ${s.pathParameters['id']}')),
+      GoRoute(path: '/transactions/:id/related', builder: (_, s) => Text('related ${s.pathParameters['id']}')),
     ],
   );
   await tester.pumpWidget(
@@ -152,6 +184,18 @@ Future<FakeTransactions> pumpApp(WidgetTester tester, String location, {List<Txn
   );
   await tester.pumpAndSettle();
   return repo;
+}
+
+/// A finger-like swipe: many small moves, as on a phone. (A single jump, as
+/// tester.drag sends, skips the point where the full-swipe delete arms.)
+Future<void> swipe(WidgetTester tester, Finder finder, double dx) async {
+  final gesture = await tester.startGesture(tester.getCenter(finder));
+  for (var i = 0; i < 20; i++) {
+    await gesture.moveBy(Offset(dx / 20, 0));
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+  await gesture.up();
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -229,15 +273,88 @@ void main() {
 
   testWidgets('the "Transaction deleted" message goes away on its own', (tester) async {
     await pumpApp(tester, '/transactions', txns: [txn('Lunch', DateTime.now(), 50000)]);
-    await tester.drag(find.text('Lunch'), const Offset(-500, 0));
-    await tester.pumpAndSettle();
+    await swipe(tester, find.text('Lunch'), -600);
     expect(find.text('Transaction deleted'), findsOneWidget);
     await tester.pump(const Duration(seconds: 6));
     await tester.pumpAndSettle();
     expect(find.text('Transaction deleted'), findsNothing);
   });
 
-  testWidgets('transactions: grouped by day, filtered by type, swipe deletes with undo', (tester) async {
+  testWidgets('swipe left shows Edit and Delete; Edit opens the form, Delete deletes', (tester) async {
+    final repo = await pumpApp(tester, '/transactions', txns: [txn('Lunch', DateTime.now(), 50000)]);
+    await tester.drag(find.text('Lunch'), const Offset(-300, 0));
+    await tester.pumpAndSettle();
+    expect(repo.deleted, isEmpty, reason: 'a short swipe only reveals the buttons');
+    expect(find.text('Edit'), findsOneWidget);
+    expect(find.text('Delete'), findsOneWidget);
+
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    expect(find.text('editing Lunch'), findsOneWidget);
+
+    final router = GoRouter.of(tester.element(find.text('editing Lunch')));
+    router.pop();
+    await tester.pumpAndSettle();
+    await tester.drag(find.text('Lunch'), const Offset(-300, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(repo.deleted, {'Lunch'});
+    expect(find.text('Transaction deleted'), findsOneWidget);
+  });
+
+  testWidgets('home: recent transactions swipe too', (tester) async {
+    await pumpApp(tester, '/', txns: [txn('Lunch', DateTime.now(), 50000)]);
+    await tester.drag(find.text('Lunch'), const Offset(-300, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit'), findsOneWidget);
+  });
+
+  testWidgets('detail: tap the reason once, type, and it saves when the keyboard closes', (tester) async {
+    final repo = await pumpApp(tester, '/transactions/Lunch', txns: [txn('Lunch', DateTime.now(), 50000)]);
+    expect(find.text('What was it for? Tap to add'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('reason')));
+    await tester.enterText(find.byKey(const Key('reason')), 'Team lunch');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(repo.rows.single.notes, 'Team lunch');
+  });
+
+  testWidgets('detail: suggests the last reason used with the same person, and links the history', (tester) async {
+    final now = DateTime.now();
+    final earlier = Txn(
+      id: 'earlier',
+      accountId: 'acct-cash',
+      type: TransactionType.expense,
+      amount: 1000000,
+      occurredAt: now.subtract(const Duration(days: 30)),
+      counterpartyName: 'Dawit',
+      notes: 'Rent',
+    );
+    final current = Txn(
+      id: 'current',
+      accountId: 'acct-cash',
+      type: TransactionType.expense,
+      amount: 1000000,
+      occurredAt: now,
+      counterpartyName: 'Dawit',
+    );
+    final repo = await pumpApp(tester, '/transactions/current', txns: [earlier, current]);
+
+    expect(find.text('Last time: Rent'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('reason-suggestion')));
+    await tester.pumpAndSettle();
+    expect(repo.rows.firstWhere((t) => t.id == 'current').notes, 'Rent');
+
+    expect(find.text('2 times with Dawit'), findsOneWidget);
+    await tester.scrollUntilVisible(find.byKey(const Key('history')), 200, scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.byKey(const Key('history')));
+    await tester.pumpAndSettle();
+    expect(find.text('related current'), findsOneWidget);
+  });
+
+  testWidgets('transactions: grouped by day, filtered by type, full swipe deletes with undo', (tester) async {
     final today = DateTime.now();
     final yesterday = today.subtract(const Duration(days: 1));
     final repo = await pumpApp(
@@ -261,8 +378,7 @@ void main() {
 
     await tester.tap(find.text('All'));
     await tester.pumpAndSettle();
-    await tester.drag(find.text('Lunch'), const Offset(-500, 0));
-    await tester.pumpAndSettle();
+    await swipe(tester, find.text('Lunch'), -600);
     expect(repo.deleted, {'Lunch'});
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();

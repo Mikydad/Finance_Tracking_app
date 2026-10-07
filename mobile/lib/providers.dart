@@ -7,6 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config.dart';
 import 'data/local/models.dart';
+import 'data/receipts/receipt_enricher.dart';
+import 'data/receipts/receipt_reader.dart';
 import 'data/remote/capture_api.dart';
 import 'data/repositories/account_repository.dart';
 import 'data/repositories/category_repository.dart';
@@ -22,9 +24,13 @@ import 'domain/transaction.dart';
 final configProvider = Provider<AppConfig>((ref) => throw UnimplementedError('configProvider not overridden'));
 final isarProvider = Provider<Isar>((ref) => throw UnimplementedError('isarProvider not overridden'));
 
-final transactionRepositoryProvider = Provider<TransactionRepository>(
-  (ref) => IsarTransactionRepository(ref.watch(isarProvider)),
-);
+final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
+  final hasBackend = ref.watch(configProvider).hasBackend;
+  return IsarTransactionRepository(
+    ref.watch(isarProvider),
+    userId: () => hasBackend ? Supabase.instance.client.auth.currentUser?.id : null,
+  );
+});
 final accountRepositoryProvider = Provider<AccountRepository>((ref) => IsarAccountRepository(ref.watch(isarProvider)));
 final categoryRepositoryProvider = Provider<CategoryRepository>(
   (ref) => IsarCategoryRepository(ref.watch(isarProvider)),
@@ -49,6 +55,16 @@ final lastTwoMonthsProvider = StreamProvider<List<Txn>>((ref) {
 final transactionProvider = StreamProvider.family<Txn?, String>(
   (ref, id) => ref.watch(transactionRepositoryProvider).watchOne(id),
 );
+
+/// Other transactions with the same person or shop as transaction [id].
+final relatedTransactionsProvider = StreamProvider.family<List<Txn>, String>((ref, id) async* {
+  final txn = await ref.watch(transactionProvider(id).future);
+  if (txn == null) {
+    yield const [];
+    return;
+  }
+  yield* ref.watch(transactionRepositoryProvider).watchRelated(txn);
+});
 
 final accountsProvider = StreamProvider<List<Account>>((ref) => ref.watch(accountRepositoryProvider).watchAll());
 
@@ -107,12 +123,20 @@ final syncSchedulerProvider = Provider<SyncScheduler?>((ref) {
       )
       .subscribe();
 
-  final scheduler = SyncScheduler(engine, localChanges: newOutboxOps(isar), remoteChanges: nudges.stream)..start();
+  final reader = ReceiptReader();
+  final enricher = ReceiptEnricher(ref.watch(transactionRepositoryProvider), reader);
+  final scheduler = SyncScheduler(
+    engine,
+    localChanges: newOutboxOps(isar),
+    remoteChanges: nudges.stream,
+    onSynced: enricher.run,
+  )..start();
   final lifecycle = AppLifecycleListener(onResume: scheduler.syncNow);
 
   ref.onDispose(() {
     lifecycle.dispose();
     scheduler.dispose();
+    reader.close();
     unawaited(client.removeChannel(channel));
     nudges.close();
   });

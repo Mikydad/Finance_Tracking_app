@@ -277,7 +277,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 controller: _notes,
                 onChanged: (_) => setState(() {}),
                 maxLines: 2,
-                decoration: const InputDecoration(hintText: 'Add a note (optional)'),
+                decoration: const InputDecoration(hintText: 'Reason (optional)'),
               ),
               const SizedBox(height: 28),
               FilledButton(

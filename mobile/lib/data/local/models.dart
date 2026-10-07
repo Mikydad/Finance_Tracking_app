@@ -30,6 +30,9 @@ class LocalTransaction {
 
   String? counterpartyName;
   String? counterpartyKind;
+
+  /// Masked, as the bank shows it: `2519****1122`, `****3307`.
+  String? counterpartyAccount;
   String? categoryId;
   String? categorySource;
   String? description;
@@ -43,6 +46,11 @@ class LocalTransaction {
   DateTime? deletedAt;
   int serverVersion = 0;
   late DateTime updatedAt;
+
+  // Phone-only: reading the bank receipt behind the SMS link. Not synced, so
+  // each phone reads a receipt at most once (see ReceiptEnricher).
+  DateTime? receiptCheckedAt;
+  int receiptAttempts = 0;
 }
 
 @collection

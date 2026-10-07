@@ -13,6 +13,7 @@ class SyncScheduler {
     this.remoteChanges = const Stream.empty(),
     this.localDelay = const Duration(seconds: 2),
     this.remoteDelay = const Duration(milliseconds: 500),
+    this.onSynced,
   });
 
   final SyncEngine _engine;
@@ -24,6 +25,10 @@ class SyncScheduler {
   final Stream<void> remoteChanges;
   final Duration localDelay;
   final Duration remoteDelay;
+
+  /// Background work that follows a successful sync (e.g. reading receipts).
+  /// Not awaited, and its errors don't count as sync failures.
+  final Future<void> Function()? onSynced;
 
   final _subs = <StreamSubscription<void>>[];
   Timer? _debounce;
@@ -50,6 +55,7 @@ class SyncScheduler {
       await _engine.sync();
       _failures = 0;
       lastError = null;
+      if (onSynced != null) unawaited(onSynced!().catchError((_) {}));
       return true;
     } catch (e) {
       lastError = e;

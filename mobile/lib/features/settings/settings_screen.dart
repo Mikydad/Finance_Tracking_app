@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/theme.dart';
 import '../../data/sync/sync_engine.dart';
+import '../export/csv_export.dart';
 import '../../providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -70,6 +71,14 @@ class SettingsScreen extends ConsumerWidget {
                   title: const Text('Manage categories'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/categories'),
+                ),
+                ListTile(
+                  key: const Key('export-csv'),
+                  leading: const Icon(Icons.file_download_outlined),
+                  title: const Text('Export transactions'),
+                  subtitle: const Text('CSV for Excel or Google Sheets'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => exportTransactions(context, ref),
                 ),
                 const ListTile(
                   leading: Icon(Icons.payments_outlined),

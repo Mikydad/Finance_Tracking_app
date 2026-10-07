@@ -24,6 +24,19 @@ export function matchKey(raw: string | null): string | null {
   return key || null;
 }
 
+/** One shape for a counterparty's masked account, for rules: "1********3307"
+ * -> "****3307"; telebirr's "2519****1122" stays. Must match `accountKey` in
+ * mobile/lib/domain/counterparty.dart, which writes the rules. */
+export function accountKey(raw: string | null): string | null {
+  if (!raw) return null;
+  const compact = raw.replace(/\s/g, "");
+  if (/^2519\*+\d{2,6}$/.test(compact)) return compact;
+  const masked = compact.match(/\*+(\d{2,6})$/);
+  if (masked) return "****" + masked[1];
+  const digits = compact.replace(/\D/g, "");
+  return digits.length >= 4 ? "****" + digits.slice(-4) : null;
+}
+
 /** Keeps the parser's answer when it has one; otherwise guesses from the name. */
 export function counterpartyKind(name: string | null, fromParser: CounterpartyKind): CounterpartyKind {
   if (fromParser !== "unknown") return fromParser;

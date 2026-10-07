@@ -1,8 +1,8 @@
 import { assert, assertEquals, assertNotEquals } from "jsr:@std/assert@1";
-import type { AiCategorizeInput, AiCategorizer, AiSuggestion } from "../categorizer.ts";
+import type { AiCategorizeInput, AiCategorizer, AiSuggestion, RuleField } from "../categorizer.ts";
 import { decryptText, encryptText, importKey } from "../crypto.ts";
 import type { DedupCandidate } from "../dedup.ts";
-import { matchKey } from "../normalizer.ts";
+import { accountKey, matchKey } from "../normalizer.ts";
 import { addisDate } from "../parsers/util.ts";
 import {
   type Channel,
@@ -90,8 +90,9 @@ class MemoryStore implements IngestStore {
     t.description ??= f.description;
     return Promise.resolve();
   }
-  userRuleCategoryId(_u: string, key: string) {
-    return Promise.resolve(this.rules.get(key) ?? null);
+  /** Rules keyed by name, or "acct:<accountKey>" for account rules. */
+  userRuleCategoryId(_u: string, field: RuleField, value: string) {
+    return Promise.resolve(this.rules.get(field === "counterparty" ? value : `acct:${value}`) ?? null);
   }
   cachedSuggestion(key: string) {
     return Promise.resolve(this.cache.get(key) ?? null);
@@ -213,6 +214,25 @@ Deno.test("a user's rule beats everything, including AI", async () => {
   assertEquals(store.txs[0].categoryId, "cat-education");
   assertEquals(store.txs[0].categorySource, "rule");
   assertEquals(ai.calls.length, 0);
+});
+
+Deno.test("a rule on the account number matches even when the name differs", async () => {
+  const store = new MemoryStore();
+  // Taught on the phone from a receipt that spelled the name in full.
+  store.rules.set("acct:2519****1122", "cat-family");
+  const r = await ingestMessage(store, req("T1"), deps);
+  assert(r.status === "created");
+  assertEquals(store.txs[0].categoryId, "cat-family");
+  assertEquals(store.txs[0].status, "confirmed");
+});
+
+Deno.test("accountKey matches the phone's: bank tails, telebirr kept, full numbers masked", () => {
+  assertEquals(accountKey("1********3307"), "****3307");
+  assertEquals(accountKey("****3307"), "****3307");
+  assertEquals(accountKey("1000123453307"), "****3307");
+  assertEquals(accountKey("2519****1122"), "2519****1122");
+  assertEquals(accountKey("12"), null);
+  assertEquals(accountKey(null), null);
 });
 
 Deno.test("AI categorizes an unknown merchant once, then the cache answers", async () => {

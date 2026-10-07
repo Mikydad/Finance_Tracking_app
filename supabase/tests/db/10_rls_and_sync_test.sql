@@ -264,4 +264,36 @@ begin
 end;
 $$;
 
+\echo 'categorization rules: phone pushes name and account rules, re-teaching updates in place'
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+do $$
+declare
+  v_family uuid := (select id from public.categories where key = 'family' and user_id is null);
+  v_food uuid := (select id from public.categories where key = 'food' and user_id is null);
+  v_rule jsonb;
+  v_result jsonb;
+begin
+  v_rule := jsonb_build_object('id', '00000000-0000-0000-0000-0000000000d1',
+    'user_id', '00000000-0000-0000-0000-00000000000a', 'match_field', 'counterparty_account',
+    'match_value', '2519****1122', 'category_id', v_family, 'source', 'user_correction', 'deleted_at', null);
+  v_result := public.sync_push(jsonb_build_array(
+    jsonb_build_object('table', 'categorization_rules', 'op', 'upsert', 'row', v_rule),
+    jsonb_build_object('table', 'categorization_rules', 'op', 'upsert', 'row',
+      v_rule || jsonb_build_object('id', '00000000-0000-0000-0000-0000000000d2',
+        'match_field', 'counterparty', 'match_value', 'hana girma'))));
+  assert (select bool_and((r ->> 'ok')::boolean) from jsonb_array_elements(v_result -> 'results') r),
+    format('rule pushes should succeed: %s', v_result);
+
+  -- Same id again with another category: an update, not a unique-index clash.
+  v_result := public.sync_push(jsonb_build_array(jsonb_build_object('table', 'categorization_rules',
+    'op', 'upsert', 'row', v_rule || jsonb_build_object('category_id', v_food))));
+  assert (v_result -> 'results' -> 0 ->> 'ok')::boolean, format('re-teach should succeed: %s', v_result);
+  assert (select category_id from public.categorization_rules
+          where match_field = 'counterparty_account' and match_value = '2519****1122') = v_food,
+    'account rule should now point at food';
+  assert (select count(*) from public.categorization_rules) = 2, 'expected exactly 2 rules';
+end;
+$$;
+select pg_temp.as_admin();
+
 \echo 'ALL DB TESTS PASSED'
