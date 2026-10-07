@@ -13169,6 +13169,564 @@ extension LocalPrefsQueryProperty
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
 
+extension GetLocalCoachNoteCollection on Isar {
+  IsarCollection<LocalCoachNote> get localCoachNotes => this.collection();
+}
+
+const LocalCoachNoteSchema = CollectionSchema(
+  name: r'LocalCoachNote',
+  id: 3070574879097610803,
+  properties: {
+    r'adviceJson': PropertySchema(
+      id: 0,
+      name: r'adviceJson',
+      type: IsarType.string,
+    ),
+    r'createdAt': PropertySchema(
+      id: 1,
+      name: r'createdAt',
+      type: IsarType.dateTime,
+    ),
+  },
+
+  estimateSize: _localCoachNoteEstimateSize,
+  serialize: _localCoachNoteSerialize,
+  deserialize: _localCoachNoteDeserialize,
+  deserializeProp: _localCoachNoteDeserializeProp,
+  idName: r'id',
+  indexes: {},
+  links: {},
+  embeddedSchemas: {},
+
+  getId: _localCoachNoteGetId,
+  getLinks: _localCoachNoteGetLinks,
+  attach: _localCoachNoteAttach,
+  version: '3.3.2',
+);
+
+int _localCoachNoteEstimateSize(
+  LocalCoachNote object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  bytesCount += 3 + object.adviceJson.length * 3;
+  return bytesCount;
+}
+
+void _localCoachNoteSerialize(
+  LocalCoachNote object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeString(offsets[0], object.adviceJson);
+  writer.writeDateTime(offsets[1], object.createdAt);
+}
+
+LocalCoachNote _localCoachNoteDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = LocalCoachNote();
+  object.adviceJson = reader.readString(offsets[0]);
+  object.createdAt = reader.readDateTime(offsets[1]);
+  object.id = id;
+  return object;
+}
+
+P _localCoachNoteDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readString(offset)) as P;
+    case 1:
+      return (reader.readDateTime(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+Id _localCoachNoteGetId(LocalCoachNote object) {
+  return object.id;
+}
+
+List<IsarLinkBase<dynamic>> _localCoachNoteGetLinks(LocalCoachNote object) {
+  return [];
+}
+
+void _localCoachNoteAttach(
+  IsarCollection<dynamic> col,
+  Id id,
+  LocalCoachNote object,
+) {
+  object.id = id;
+}
+
+extension LocalCoachNoteQueryWhereSort
+    on QueryBuilder<LocalCoachNote, LocalCoachNote, QWhere> {
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterWhere> anyId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+}
+
+extension LocalCoachNoteQueryWhere
+    on QueryBuilder<LocalCoachNote, LocalCoachNote, QWhereClause> {
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterWhereClause> idEqualTo(
+    Id id,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(lower: id, upper: id));
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterWhereClause> idNotEqualTo(
+    Id id,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: id, includeUpper: false),
+            )
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: id, includeLower: false),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: id, includeLower: false),
+            )
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: id, includeUpper: false),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterWhereClause> idGreaterThan(
+    Id id, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.greaterThan(lower: id, includeLower: include),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterWhereClause> idLessThan(
+    Id id, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.lessThan(upper: id, includeUpper: include),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterWhereClause> idBetween(
+    Id lowerId,
+    Id upperId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.between(
+          lower: lowerId,
+          includeLower: includeLower,
+          upper: upperId,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+}
+
+extension LocalCoachNoteQueryFilter
+    on QueryBuilder<LocalCoachNote, LocalCoachNote, QFilterCondition> {
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  adviceJsonEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'adviceJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  adviceJsonGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'adviceJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  adviceJsonLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'adviceJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  adviceJsonBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'adviceJson',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  adviceJsonStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'adviceJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  adviceJsonEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'adviceJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  adviceJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'adviceJson',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  adviceJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'adviceJson',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  adviceJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'adviceJson', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  adviceJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'adviceJson', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  createdAtEqualTo(DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'createdAt', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  createdAtGreaterThan(DateTime value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'createdAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  createdAtLessThan(DateTime value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'createdAt',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  createdAtBetween(
+    DateTime lower,
+    DateTime upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'createdAt',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition> idEqualTo(
+    Id value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'id', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  idGreaterThan(Id value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition>
+  idLessThan(Id value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterFilterCondition> idBetween(
+    Id lower,
+    Id upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'id',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+}
+
+extension LocalCoachNoteQueryObject
+    on QueryBuilder<LocalCoachNote, LocalCoachNote, QFilterCondition> {}
+
+extension LocalCoachNoteQueryLinks
+    on QueryBuilder<LocalCoachNote, LocalCoachNote, QFilterCondition> {}
+
+extension LocalCoachNoteQuerySortBy
+    on QueryBuilder<LocalCoachNote, LocalCoachNote, QSortBy> {
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterSortBy>
+  sortByAdviceJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adviceJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterSortBy>
+  sortByAdviceJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adviceJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterSortBy> sortByCreatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterSortBy>
+  sortByCreatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+}
+
+extension LocalCoachNoteQuerySortThenBy
+    on QueryBuilder<LocalCoachNote, LocalCoachNote, QSortThenBy> {
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterSortBy>
+  thenByAdviceJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adviceJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterSortBy>
+  thenByAdviceJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adviceJson', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterSortBy> thenByCreatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterSortBy>
+  thenByCreatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterSortBy> thenById() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QAfterSortBy> thenByIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+}
+
+extension LocalCoachNoteQueryWhereDistinct
+    on QueryBuilder<LocalCoachNote, LocalCoachNote, QDistinct> {
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QDistinct> distinctByAdviceJson({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'adviceJson', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, LocalCoachNote, QDistinct>
+  distinctByCreatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'createdAt');
+    });
+  }
+}
+
+extension LocalCoachNoteQueryProperty
+    on QueryBuilder<LocalCoachNote, LocalCoachNote, QQueryProperty> {
+  QueryBuilder<LocalCoachNote, int, QQueryOperations> idProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, String, QQueryOperations> adviceJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'adviceJson');
+    });
+  }
+
+  QueryBuilder<LocalCoachNote, DateTime, QQueryOperations> createdAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'createdAt');
+    });
+  }
+}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
 extension GetSyncStateCollection on Isar {
   IsarCollection<SyncState> get syncStates => this.collection();
 }

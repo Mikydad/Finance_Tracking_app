@@ -9,6 +9,7 @@ import '../../core/theme.dart';
 import '../../domain/category.dart';
 import '../../domain/goal.dart';
 import '../../providers.dart';
+import '../coach/coach_card.dart';
 import 'goal_progress.dart';
 
 /// Your goals and how each is going this week or month.
@@ -55,6 +56,8 @@ class GoalsScreen extends ConsumerWidget {
             label: const Text('Add a goal'),
             onPressed: () => showGoalEditor(context, ref),
           ),
+          const SizedBox(height: 16),
+          const CoachCard(),
         ],
       ),
     );

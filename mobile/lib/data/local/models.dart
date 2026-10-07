@@ -163,6 +163,15 @@ class LocalPrefs {
   bool weekStartsMonday = true;
 }
 
+/// The coach's last answer (single row, phone-only), shown offline until
+/// the next refresh.
+@collection
+class LocalCoachNote {
+  Id id = 0;
+  late String adviceJson;
+  late DateTime createdAt;
+}
+
 /// Single row holding the pull cursor.
 @collection
 class SyncState {

@@ -424,3 +424,7 @@ enabled = true
 # so the ingest function checks auth itself (user JWT or ingestion token).
 [functions.ingest]
 verify_jwt = false
+
+# Checks the user's session itself (auth.getUser), like ingest.
+[functions.coach]
+verify_jwt = false

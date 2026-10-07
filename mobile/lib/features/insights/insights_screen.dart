@@ -10,6 +10,7 @@ import '../../domain/transaction.dart';
 import '../../providers.dart';
 import '../../widgets/category_icon.dart';
 import '../../widgets/txn_tile.dart';
+import '../coach/coach_card.dart';
 import 'period_stats.dart';
 
 /// Day / Week / Month analytics: totals against the period before, a daily
@@ -44,6 +45,8 @@ class _InsightsScreenState extends ConsumerState<InsightsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
         children: [
+          const CoachCard(),
+          const SizedBox(height: 12),
           SegmentedButton<PeriodKind>(
             showSelectedIcon: false,
             segments: const [
