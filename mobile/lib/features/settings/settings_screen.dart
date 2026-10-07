@@ -74,6 +74,13 @@ class SettingsScreen extends ConsumerWidget {
                   onTap: () => context.push('/categories'),
                 ),
                 ListTile(
+                  key: const Key('goals'),
+                  leading: const Icon(Icons.flag_outlined),
+                  title: const Text('Goals'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/goals'),
+                ),
+                ListTile(
                   key: const Key('export-csv'),
                   leading: const Icon(Icons.file_download_outlined),
                   title: const Text('Export transactions'),

@@ -192,6 +192,18 @@ class SyncEngine {
           ..deletedAt = _date(r['deleted_at'])
           ..serverVersion = (r['server_version'] as num).toInt();
         await _isar.localSources.put(src);
+      case 'finance_goals':
+        final g = await _isar.localGoals.getByUuid(id) ?? (LocalGoal()..uuid = id);
+        g
+          ..kind = r['kind'] as String
+          ..period = r['period'] as String
+          ..amount = (r['amount'] as num).toInt()
+          ..categoryId = r['category_id'] as String?
+          ..isActive = r['is_active'] as bool? ?? true
+          ..deletedAt = _date(r['deleted_at'])
+          ..serverVersion = (r['server_version'] as num).toInt()
+          ..updatedAt = _date(r['updated_at']) ?? _now();
+        await _isar.localGoals.put(g);
       default:
         // Profiles and rules aren't stored on the phone yet.
         return false;

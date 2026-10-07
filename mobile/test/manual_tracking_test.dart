@@ -8,6 +8,9 @@ import 'package:finance_app/domain/account.dart';
 import 'package:finance_app/domain/category.dart';
 import 'package:finance_app/domain/transaction.dart';
 import 'package:finance_app/core/periods.dart';
+import 'package:finance_app/data/repositories/goal_repository.dart';
+import 'package:finance_app/domain/goal.dart';
+import 'package:finance_app/features/goals/goals_screen.dart';
 import 'package:finance_app/features/home/home_screen.dart';
 import 'package:finance_app/features/insights/category_period_screen.dart';
 import 'package:finance_app/features/insights/insights_screen.dart';
@@ -126,6 +129,47 @@ class FakeTransactions extends TransactionRepository {
   Future<void> receiptFailed(String id, {int maxAttempts = 3}) async {}
 }
 
+class FakeGoals implements GoalRepository {
+  final goals = <Goal>[];
+  final _changes = StreamController<void>.broadcast();
+
+  @override
+  Stream<List<Goal>> watchActive() async* {
+    yield [...goals];
+    await for (final _ in _changes.stream) {
+      yield [...goals];
+    }
+  }
+
+  @override
+  Future<Goal> save({
+    String? id,
+    required GoalKind kind,
+    required PeriodKind period,
+    required int amount,
+    String? categoryId,
+  }) async {
+    final g = Goal(
+      id: id ?? 'goal-${goals.length}',
+      kind: kind,
+      period: period,
+      amount: amount,
+      categoryId: categoryId,
+    );
+    goals
+      ..removeWhere((x) => x.id == g.id)
+      ..add(g);
+    _changes.add(null);
+    return g;
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    goals.removeWhere((g) => g.id == id);
+    _changes.add(null);
+  }
+}
+
 class FakeAccounts implements AccountRepository {
   static const cashAccount = Account(id: 'acct-cash', name: 'Cash', institution: 'cash');
 
@@ -156,7 +200,12 @@ Txn txn(String id, DateTime at, int amount, {TransactionType type = TransactionT
   counterpartyName: id,
 );
 
-Future<FakeTransactions> pumpApp(WidgetTester tester, String location, {List<Txn> txns = const []}) async {
+Future<FakeTransactions> pumpApp(
+  WidgetTester tester,
+  String location, {
+  List<Txn> txns = const [],
+  FakeGoals? goals,
+}) async {
   final repo = FakeTransactions(txns);
   final router = GoRouter(
     initialLocation: location,
@@ -169,6 +218,7 @@ Future<FakeTransactions> pumpApp(WidgetTester tester, String location, {List<Txn
       GoRoute(path: '/add', builder: (_, _) => const AddTransactionScreen()),
       GoRoute(path: '/transactions', builder: (_, _) => const TransactionsScreen()),
       GoRoute(path: '/insights', builder: (_, _) => const InsightsScreen()),
+      GoRoute(path: '/goals', builder: (_, _) => const GoalsScreen()),
       GoRoute(
         path: '/insights/category/:id',
         builder: (_, s) => CategoryPeriodScreen(categoryId: s.pathParameters['id'], period: s.extra! as Period),
@@ -189,6 +239,7 @@ Future<FakeTransactions> pumpApp(WidgetTester tester, String location, {List<Txn
         accountRepositoryProvider.overrideWithValue(FakeAccounts()),
         categoryRepositoryProvider.overrideWithValue(FakeCategories()),
         calendarPrefsProvider.overrideWith((_) => Stream.value(const CalendarPrefs())),
+        goalRepositoryProvider.overrideWithValue(goals ?? FakeGoals()),
         categoriesProvider.overrideWith((_) => Stream.value(categories)),
         categoryByIdProvider.overrideWith((_) => Stream.value({for (final c in categories) c.id: c})),
       ],
@@ -433,6 +484,22 @@ void main() {
     expect(find.text('500 ETB · 1 transaction'), findsOneWidget);
     expect(find.text('Lunch'), findsOneWidget);
     expect(find.text('Bus'), findsNothing);
+  });
+
+  testWidgets('goals: from Home, set a weekly spending limit and see its progress', (tester) async {
+    final goals = FakeGoals();
+    await pumpApp(tester, '/', txns: [txn('Lunch', DateTime.now(), 50000)], goals: goals);
+    await tester.tap(find.byKey(const Key('home-set-goal')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('add-goal')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('goal-amount')), '5000');
+    await tester.tap(find.byKey(const Key('save-goal')));
+    await tester.pumpAndSettle();
+
+    expect(goals.goals.single.amount, 500000);
+    expect(find.text('Spend at most 5,000 ETB a week'), findsOneWidget);
+    expect(find.textContaining('500 of 5,000'), findsOneWidget);
   });
 
   testWidgets('transactions: grouped by day, filtered by type, full swipe deletes with undo', (tester) async {

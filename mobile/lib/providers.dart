@@ -13,6 +13,7 @@ import 'data/receipts/receipt_reader.dart';
 import 'data/remote/capture_api.dart';
 import 'data/repositories/account_repository.dart';
 import 'data/repositories/category_repository.dart';
+import 'data/repositories/goal_repository.dart';
 import 'data/repositories/prefs_repository.dart';
 import 'data/repositories/transaction_repository.dart';
 import 'data/sync/sync_api.dart';
@@ -20,7 +21,9 @@ import 'data/sync/sync_engine.dart';
 import 'data/sync/sync_scheduler.dart';
 import 'domain/account.dart';
 import 'domain/category.dart';
+import 'domain/goal.dart';
 import 'domain/transaction.dart';
+import 'features/goals/goal_progress.dart';
 
 /// Overridden in main() once the app has started.
 final configProvider = Provider<AppConfig>((ref) => throw UnimplementedError('configProvider not overridden'));
@@ -53,6 +56,29 @@ final lastTwoMonthsProvider = StreamProvider<List<Txn>>((ref) {
   final periods = ref.watch(periodsProvider);
   final lastMonth = periods.shift(periods.containing(PeriodKind.month, DateTime.now()), -1);
   return ref.watch(transactionRepositoryProvider).watch(from: lastMonth.start);
+});
+
+final goalRepositoryProvider = Provider<GoalRepository>((ref) {
+  final hasBackend = ref.watch(configProvider).hasBackend;
+  return GoalRepository(
+    ref.watch(isarProvider),
+    userId: () => hasBackend ? Supabase.instance.client.auth.currentUser?.id : null,
+  );
+});
+
+final goalsProvider = StreamProvider<List<Goal>>((ref) => ref.watch(goalRepositoryProvider).watchActive());
+
+/// Every active goal with where it stands this week or month.
+final goalProgressProvider = Provider<AsyncValue<List<GoalProgress>>>((ref) {
+  final goals = ref.watch(goalsProvider);
+  final txns = ref.watch(lastTwoMonthsProvider);
+  final periods = ref.watch(periodsProvider);
+  final categories = ref.watch(categoryByIdProvider).value ?? const {};
+  return goals.whenData((list) {
+    final rows = txns.value ?? const <Txn>[];
+    final now = DateTime.now();
+    return [for (final g in list) GoalProgress.of(g, rows, periods, categories, now)];
+  });
 });
 
 final prefsRepositoryProvider = Provider<PrefsRepository>((ref) => PrefsRepository(ref.watch(isarProvider)));

@@ -296,4 +296,38 @@ end;
 $$;
 select pg_temp.as_admin();
 
+\echo 'finance goals: pushed by the owner, pulled back, invisible to others'
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+do $$
+declare
+  v_result jsonb;
+  v_pull jsonb;
+begin
+  v_result := public.sync_push(jsonb_build_array(jsonb_build_object('table', 'finance_goals', 'op', 'upsert',
+    'row', jsonb_build_object('id', '00000000-0000-0000-0000-0000000000e1', 'kind', 'spend_max',
+      'period', 'week', 'amount', 500000, 'is_active', true, 'deleted_at', null))));
+  assert (v_result -> 'results' -> 0 ->> 'ok')::boolean, format('goal push should succeed: %s', v_result);
+  assert (select user_id from public.finance_goals) = '00000000-0000-0000-0000-00000000000a',
+    'user_id defaults to the caller';
+
+  v_pull := public.sync_pull(0, 2000);
+  assert exists (select 1 from jsonb_array_elements(v_pull -> 'changes') c where c ->> 'table' = 'finance_goals'),
+    'the goal comes back on pull';
+
+  -- An earning goal can't be tied to a category.
+  v_result := public.sync_push(jsonb_build_array(jsonb_build_object('table', 'finance_goals', 'op', 'upsert',
+    'row', jsonb_build_object('id', '00000000-0000-0000-0000-0000000000e2', 'kind', 'earn_min',
+      'period', 'month', 'amount', 100, 'category_id',
+      (select id from public.categories where key = 'food' and user_id is null)))));
+  assert not (v_result -> 'results' -> 0 ->> 'ok')::boolean, 'category on an earning goal should be rejected';
+end;
+$$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
+do $$
+begin
+  assert (select count(*) from public.finance_goals) = 0, 'bob must not see alice''s goals';
+end;
+$$;
+select pg_temp.as_admin();
+
 \echo 'ALL DB TESTS PASSED'

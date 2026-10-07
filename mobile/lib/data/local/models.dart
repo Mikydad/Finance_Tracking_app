@@ -127,6 +127,31 @@ class OutboxOp {
   String? lastError;
 }
 
+/// A finance goal (synced, table finance_goals). Repeats every week or month.
+@collection
+class LocalGoal {
+  Id isarId = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late String uuid;
+
+  /// spend_max | earn_min | save_min
+  late String kind;
+
+  /// week | month
+  late String period;
+
+  /// Santim.
+  late int amount;
+
+  /// Spending goals only: limit to one category (and its sub-categories).
+  String? categoryId;
+  bool isActive = true;
+  DateTime? deletedAt;
+  int serverVersion = 0;
+  late DateTime updatedAt;
+}
+
 /// Phone-only display preferences (single row). Not synced: how a phone
 /// shows dates is a per-device choice.
 @collection

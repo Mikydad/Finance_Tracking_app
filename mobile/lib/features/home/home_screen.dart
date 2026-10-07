@@ -11,6 +11,7 @@ import '../../domain/transaction.dart';
 import '../../providers.dart';
 import '../../widgets/category_icon.dart';
 import '../../widgets/swipe_txn_tile.dart';
+import '../goals/goals_screen.dart';
 
 /// Spent this month, where it went by category, and the latest transactions.
 class HomeScreen extends ConsumerWidget {
@@ -51,6 +52,8 @@ class HomeScreen extends ConsumerWidget {
                   summary: summary,
                   lastMonthName: periods.label(periods.shift(month, -1), now: now),
                 ),
+                const SizedBox(height: 16),
+                const HomeGoals(),
                 const SizedBox(height: 20),
                 if (summary.byCategory.isNotEmpty) ...[
                   Text(periods.label(month, now: now), style: Theme.of(context).textTheme.titleMedium),
