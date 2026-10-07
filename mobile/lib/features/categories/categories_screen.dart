@@ -87,20 +87,27 @@ class _CategoryTile extends ConsumerWidget {
   }
 }
 
-/// Add a custom category, or rename [existing].
-Future<void> showCategoryEditor(BuildContext context, WidgetRef ref, {Category? existing}) {
-  return showModalBottomSheet<void>(
+/// Add a custom category, or rename [existing]. Returns the new category
+/// (null when renaming or cancelled), so a picker can select it right away.
+Future<Category?> showCategoryEditor(
+  BuildContext context,
+  WidgetRef ref, {
+  Category? existing,
+  CategoryKind initialKind = CategoryKind.expense,
+}) {
+  return showModalBottomSheet<Category>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (_) => _CategoryEditor(existing: existing),
+    builder: (_) => _CategoryEditor(existing: existing, initialKind: initialKind),
   );
 }
 
 class _CategoryEditor extends ConsumerStatefulWidget {
-  const _CategoryEditor({this.existing});
+  const _CategoryEditor({this.existing, this.initialKind = CategoryKind.expense});
 
   final Category? existing;
+  final CategoryKind initialKind;
 
   @override
   ConsumerState<_CategoryEditor> createState() => _CategoryEditorState();
@@ -108,7 +115,7 @@ class _CategoryEditor extends ConsumerStatefulWidget {
 
 class _CategoryEditorState extends ConsumerState<_CategoryEditor> {
   late final _name = TextEditingController(text: widget.existing?.name);
-  CategoryKind _kind = CategoryKind.expense;
+  late CategoryKind _kind = widget.initialKind;
   String _icon = CategoryStyle.customIcons.keys.first;
   String _color = CategoryStyle.customColors.first;
   String? _error;
@@ -128,13 +135,14 @@ class _CategoryEditorState extends ConsumerState<_CategoryEditor> {
       return;
     }
     final repo = ref.read(categoryRepositoryProvider);
+    Category? created;
     if (_renaming) {
       await repo.rename(widget.existing!.id, name);
     } else {
       final userId = ref.read(sessionProvider).value?.user.id ?? 'local';
-      await repo.add(userId: userId, name: name, kind: _kind, icon: _icon, color: _color);
+      created = await repo.add(userId: userId, name: name, kind: _kind, icon: _icon, color: _color);
     }
-    if (mounted) Navigator.pop(context);
+    if (mounted) Navigator.pop(context, created);
   }
 
   @override

@@ -17,6 +17,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import 'categories_screen_test.dart' show FakeCategories;
+
 class FakeTransactions extends TransactionRepository {
   FakeTransactions([List<Txn> initial = const []]) : rows = [...initial];
 
@@ -176,6 +178,7 @@ Future<FakeTransactions> pumpApp(WidgetTester tester, String location, {List<Txn
         configProvider.overrideWithValue(const AppConfig(supabaseUrl: '', supabasePublishableKey: '')),
         transactionRepositoryProvider.overrideWithValue(repo),
         accountRepositoryProvider.overrideWithValue(FakeAccounts()),
+        categoryRepositoryProvider.overrideWithValue(FakeCategories()),
         categoriesProvider.overrideWith((_) => Stream.value(categories)),
         categoryByIdProvider.overrideWith((_) => Stream.value({for (final c in categories) c.id: c})),
       ],
@@ -219,6 +222,29 @@ void main() {
       (125050, 'Lunch', 'cat-food', 'acct-cash', TransactionType.expense),
     );
     expect(find.text('open'), findsOneWidget, reason: 'the screen closes after saving');
+  });
+
+  testWidgets('add: "+ New" creates a category without leaving the form and selects it', (tester) async {
+    final repo = await pumpApp(tester, '/start');
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('amount')), '900');
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('new-category')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const Key('new-category')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('category-name')), 'Business');
+    await tester.tap(find.byKey(const Key('save-category')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add transaction'), findsWidgets, reason: 'still on the form');
+    await tester.scrollUntilVisible(find.byKey(const Key('save')), 200, scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.byKey(const Key('save')));
+    await tester.pumpAndSettle();
+    expect(repo.rows.single.categoryId, 'new');
   });
 
   testWidgets('add: a missing amount shows an error and saves nothing', (tester) async {
