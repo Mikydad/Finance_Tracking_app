@@ -7,7 +7,10 @@ import 'package:finance_app/data/repositories/transaction_repository.dart';
 import 'package:finance_app/domain/account.dart';
 import 'package:finance_app/domain/category.dart';
 import 'package:finance_app/domain/transaction.dart';
+import 'package:finance_app/core/periods.dart';
 import 'package:finance_app/features/home/home_screen.dart';
+import 'package:finance_app/features/insights/category_period_screen.dart';
+import 'package:finance_app/features/insights/insights_screen.dart';
 import 'package:finance_app/features/transactions/add_transaction_screen.dart';
 import 'package:finance_app/features/transactions/transaction_detail_screen.dart';
 import 'package:finance_app/features/transactions/transactions_screen.dart';
@@ -41,6 +44,7 @@ class FakeTransactions extends TransactionRepository {
     () => _live
         .where((t) => type == null || t.type == type)
         .where((t) => from == null || !t.occurredAt.isBefore(from))
+        .where((t) => to == null || t.occurredAt.isBefore(to))
         .take(limit ?? 1 << 30)
         .toList(),
   );
@@ -164,6 +168,11 @@ Future<FakeTransactions> pumpApp(WidgetTester tester, String location, {List<Txn
       ),
       GoRoute(path: '/add', builder: (_, _) => const AddTransactionScreen()),
       GoRoute(path: '/transactions', builder: (_, _) => const TransactionsScreen()),
+      GoRoute(path: '/insights', builder: (_, _) => const InsightsScreen()),
+      GoRoute(
+        path: '/insights/category/:id',
+        builder: (_, s) => CategoryPeriodScreen(categoryId: s.pathParameters['id'], period: s.extra! as Period),
+      ),
       GoRoute(
         path: '/transactions/:id',
         builder: (_, s) => TransactionDetailScreen(id: s.pathParameters['id']!),
@@ -179,6 +188,7 @@ Future<FakeTransactions> pumpApp(WidgetTester tester, String location, {List<Txn
         transactionRepositoryProvider.overrideWithValue(repo),
         accountRepositoryProvider.overrideWithValue(FakeAccounts()),
         categoryRepositoryProvider.overrideWithValue(FakeCategories()),
+        calendarPrefsProvider.overrideWith((_) => Stream.value(const CalendarPrefs())),
         categoriesProvider.overrideWith((_) => Stream.value(categories)),
         categoryByIdProvider.overrideWith((_) => Stream.value({for (final c in categories) c.id: c})),
       ],
@@ -378,6 +388,51 @@ void main() {
     await tester.tap(find.byKey(const Key('history')));
     await tester.pumpAndSettle();
     expect(find.text('related current'), findsOneWidget);
+  });
+
+  testWidgets('insights: week totals, switch to month, step back to an empty period', (tester) async {
+    final now = DateTime.now();
+    await pumpApp(
+      tester,
+      '/insights',
+      txns: [
+        txn('Lunch', now, 50000, cat: 'cat-coffee'),
+        txn('Salary', now, 4200000, type: TransactionType.income, cat: 'cat-income'),
+      ],
+    );
+    expect(find.text('This week'), findsOneWidget);
+    expect(find.textContaining('500 ETB', findRichText: true), findsWidgets, reason: 'spent this week');
+    expect(find.text('Food'), findsOneWidget, reason: 'coffee rolls up to Food');
+
+    await tester.tap(find.text('Month'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('insights-spent')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('period-back')));
+    await tester.pumpAndSettle();
+    expect(find.text('No transactions in this period.'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('period-forward')));
+    await tester.pumpAndSettle();
+    expect(find.text('No transactions in this period.'), findsNothing);
+  });
+
+  testWidgets('insights: tapping a category lists its transactions for the period', (tester) async {
+    final now = DateTime.now();
+    await pumpApp(
+      tester,
+      '/insights',
+      txns: [
+        txn('Lunch', now, 50000, cat: 'cat-coffee'),
+        txn('Bus', now, 3000),
+      ],
+    );
+    await tester.ensureVisible(find.text('Food'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Food'));
+    await tester.pumpAndSettle();
+    expect(find.text('500 ETB · 1 transaction'), findsOneWidget);
+    expect(find.text('Lunch'), findsOneWidget);
+    expect(find.text('Bus'), findsNothing);
   });
 
   testWidgets('transactions: grouped by day, filtered by type, full swipe deletes with undo', (tester) async {

@@ -3,15 +3,15 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme.dart';
 
-/// Bottom bar from the UI concept: Home, Transactions, a round "+" in the
-/// middle, and Settings.
+/// Bottom bar: Home, Transactions, a round "+" in the middle, Insights and
+/// Settings.
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.location, required this.child});
 
   final String location;
   final Widget child;
 
-  static const _tabs = ['/', '/transactions', null, '/settings'];
+  static const _tabs = ['/', '/transactions', null, '/insights', '/settings'];
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +43,12 @@ class AppShell extends StatelessWidget {
               child: Icon(Icons.add, color: Colors.white),
             ),
             label: 'Add',
+          ),
+          NavigationDestination(
+            key: Key('tab-insights'),
+            icon: Icon(Icons.insights_outlined),
+            selectedIcon: Icon(Icons.insights),
+            label: 'Insights',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

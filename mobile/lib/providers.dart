@@ -6,12 +6,14 @@ import 'package:isar_community/isar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config.dart';
+import 'core/periods.dart';
 import 'data/local/models.dart';
 import 'data/receipts/receipt_enricher.dart';
 import 'data/receipts/receipt_reader.dart';
 import 'data/remote/capture_api.dart';
 import 'data/repositories/account_repository.dart';
 import 'data/repositories/category_repository.dart';
+import 'data/repositories/prefs_repository.dart';
 import 'data/repositories/transaction_repository.dart';
 import 'data/sync/sync_api.dart';
 import 'data/sync/sync_engine.dart';
@@ -45,12 +47,27 @@ final transactionsProvider = StreamProvider.family<List<Txn>, TransactionType?>(
   (ref, type) => ref.watch(transactionRepositoryProvider).watch(type: type),
 );
 
-/// Transactions from the start of last month on, for this-month totals and
-/// the comparison with last month.
+/// Transactions from the start of last month on (in the chosen calendar),
+/// for this-month totals and the comparison with last month.
 final lastTwoMonthsProvider = StreamProvider<List<Txn>>((ref) {
-  final now = DateTime.now();
-  return ref.watch(transactionRepositoryProvider).watch(from: DateTime(now.year, now.month - 1));
+  final periods = ref.watch(periodsProvider);
+  final lastMonth = periods.shift(periods.containing(PeriodKind.month, DateTime.now()), -1);
+  return ref.watch(transactionRepositoryProvider).watch(from: lastMonth.start);
 });
+
+final prefsRepositoryProvider = Provider<PrefsRepository>((ref) => PrefsRepository(ref.watch(isarProvider)));
+
+/// Calendar (Gregorian or Ethiopian) and week start, chosen in Settings.
+final calendarPrefsProvider = StreamProvider<CalendarPrefs>((ref) => ref.watch(prefsRepositoryProvider).watch());
+
+final periodsProvider = Provider<Periods>(
+  (ref) => Periods(ref.watch(calendarPrefsProvider).value ?? const CalendarPrefs()),
+);
+
+/// Live transactions inside one day, week or month.
+final periodTransactionsProvider = StreamProvider.family<List<Txn>, Period>(
+  (ref, p) => ref.watch(transactionRepositoryProvider).watch(from: p.start, to: p.end),
+);
 
 final transactionProvider = StreamProvider.family<Txn?, String>(
   (ref, id) => ref.watch(transactionRepositoryProvider).watchOne(id),

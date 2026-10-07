@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/periods.dart';
 import '../../core/theme.dart';
 import '../../data/sync/sync_engine.dart';
 import '../export/csv_export.dart';
@@ -80,6 +81,7 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => exportTransactions(context, ref),
                 ),
+                _CalendarSettings(),
                 const ListTile(
                   leading: Icon(Icons.payments_outlined),
                   title: Text('Currency'),
@@ -101,6 +103,50 @@ class SettingsScreen extends ConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Calendar (Gregorian or Ethiopian months) and the first day of the week,
+/// used by Home, Insights and goals. Saved on this phone.
+class _CalendarSettings extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prefs = ref.watch(calendarPrefsProvider).value ?? const CalendarPrefs();
+    final repo = ref.read(prefsRepositoryProvider);
+    return Column(
+      children: [
+        ListTile(
+          key: const Key('calendar'),
+          leading: const Icon(Icons.calendar_month_outlined),
+          title: const Text('Calendar'),
+          trailing: DropdownButton<CalendarKind>(
+            value: prefs.calendar,
+            underline: const SizedBox.shrink(),
+            items: const [
+              DropdownMenuItem(value: CalendarKind.gregorian, child: Text('Gregorian')),
+              DropdownMenuItem(value: CalendarKind.ethiopian, child: Text('Ethiopian')),
+            ],
+            onChanged: (c) =>
+                c == null ? null : repo.save(CalendarPrefs(calendar: c, weekStartsMonday: prefs.weekStartsMonday)),
+          ),
+        ),
+        ListTile(
+          key: const Key('week-start'),
+          leading: const Icon(Icons.view_week_outlined),
+          title: const Text('Week starts on'),
+          trailing: DropdownButton<bool>(
+            value: prefs.weekStartsMonday,
+            underline: const SizedBox.shrink(),
+            items: const [
+              DropdownMenuItem(value: true, child: Text('Monday')),
+              DropdownMenuItem(value: false, child: Text('Sunday')),
+            ],
+            onChanged: (monday) =>
+                monday == null ? null : repo.save(CalendarPrefs(calendar: prefs.calendar, weekStartsMonday: monday)),
+          ),
+        ),
+      ],
     );
   }
 }

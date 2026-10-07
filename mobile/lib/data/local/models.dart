@@ -127,6 +127,17 @@ class OutboxOp {
   String? lastError;
 }
 
+/// Phone-only display preferences (single row). Not synced: how a phone
+/// shows dates is a per-device choice.
+@collection
+class LocalPrefs {
+  Id id = 0;
+
+  /// gregorian | ethiopian
+  String calendar = 'gregorian';
+  bool weekStartsMonday = true;
+}
+
 /// Single row holding the pull cursor.
 @collection
 class SyncState {

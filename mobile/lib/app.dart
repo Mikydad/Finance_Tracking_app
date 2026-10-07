@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/periods.dart';
 import 'core/theme.dart';
 import 'features/auth/sign_in_screen.dart';
 import 'features/capture/paste_sms_screen.dart';
 import 'features/capture/shortcut_setup_screen.dart';
 import 'features/categories/categories_screen.dart';
 import 'features/home/home_screen.dart';
+import 'features/insights/category_period_screen.dart';
+import 'features/insights/insights_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/shell/app_shell.dart';
 import 'features/transactions/add_transaction_screen.dart';
@@ -45,6 +48,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (_, _) => const NoTransitionPage(child: TransactionsScreen()),
           ),
           GoRoute(
+            path: '/insights',
+            pageBuilder: (_, _) => const NoTransitionPage(child: InsightsScreen()),
+          ),
+          GoRoute(
             path: '/settings',
             pageBuilder: (_, _) => const NoTransitionPage(child: SettingsScreen()),
           ),
@@ -65,6 +72,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/transactions/:id/related',
         builder: (_, state) => RelatedScreen(id: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/insights/category/:id',
+        builder: (_, state) {
+          final id = state.pathParameters['id']!;
+          return Consumer(
+            builder: (_, ref, _) {
+              final periods = ref.watch(periodsProvider);
+              final period = state.extra as Period? ?? periods.containing(PeriodKind.month, DateTime.now());
+              return CategoryPeriodScreen(categoryId: id == 'none' ? null : id, period: period);
+            },
+          );
+        },
       ),
       GoRoute(path: '/paste', builder: (_, _) => const PasteSmsScreen()),
       GoRoute(path: '/settings/shortcut', builder: (_, _) => const ShortcutSetupScreen()),

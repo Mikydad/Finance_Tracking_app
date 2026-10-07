@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/dates.dart';
 import '../../core/money.dart';
+import '../../core/periods.dart';
 import '../../core/theme.dart';
 import '../../domain/category.dart';
 import '../../domain/transaction.dart';
@@ -32,7 +32,9 @@ class HomeScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text('Could not load transactions: $e')),
           data: (list) {
-            final summary = MonthSummary.of(list, now, categories);
+            final periods = ref.watch(periodsProvider);
+            final month = periods.containing(PeriodKind.month, now);
+            final summary = MonthSummary.of(list, now, categories, periods: periods);
             return ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -45,10 +47,13 @@ class HomeScreen extends ConsumerWidget {
                       style: TextStyle(color: AppColors.muted),
                     ),
                   ),
-                _SpentCard(summary: summary, now: now),
+                _SpentCard(
+                  summary: summary,
+                  lastMonthName: periods.label(periods.shift(month, -1), now: now),
+                ),
                 const SizedBox(height: 20),
                 if (summary.byCategory.isNotEmpty) ...[
-                  Text('${monthName(now.month)} ${now.year}', style: Theme.of(context).textTheme.titleMedium),
+                  Text(periods.label(month, now: now), style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Card(
                     child: Padding(
@@ -114,9 +119,16 @@ Future<void> _refresh(BuildContext context, WidgetRef ref) async {
 class MonthSummary {
   const MonthSummary({required this.spent, required this.lastMonth, required this.byCategory});
 
-  factory MonthSummary.of(List<Txn> txns, DateTime now, Map<String, Category> categories) {
-    final thisMonth = startOfMonth(now);
-    final lastMonthStart = DateTime(now.year, now.month - 1);
+  /// [periods] decides what "month" means (Gregorian or Ethiopian).
+  factory MonthSummary.of(
+    List<Txn> txns,
+    DateTime now,
+    Map<String, Category> categories, {
+    Periods periods = const Periods(CalendarPrefs()),
+  }) {
+    final month = periods.containing(PeriodKind.month, now);
+    final thisMonth = month.start;
+    final lastMonthStart = periods.shift(month, -1).start;
     var spent = 0, last = 0;
     final byCategory = <String?, int>{};
     for (final t in txns) {
@@ -146,16 +158,17 @@ class MonthSummary {
 }
 
 class _SpentCard extends StatelessWidget {
-  const _SpentCard({required this.summary, required this.now});
+  const _SpentCard({required this.summary, required this.lastMonthName});
 
   final MonthSummary summary;
-  final DateTime now;
+
+  /// "September 2026" or "Pagume 2018".
+  final String lastMonthName;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final change = summary.changePercent;
-    final lastMonthName = monthName(DateTime(now.year, now.month - 1).month);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(color: AppColors.primarySoft, borderRadius: BorderRadius.circular(AppRadii.card)),
