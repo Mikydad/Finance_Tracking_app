@@ -83,8 +83,8 @@ class SettingsScreen extends ConsumerWidget {
                 ListTile(
                   key: const Key('export-csv'),
                   leading: const Icon(Icons.file_download_outlined),
-                  title: const Text('Export transactions'),
-                  subtitle: const Text('CSV for Excel or Google Sheets'),
+                  title: const Text('Export or share'),
+                  subtitle: const Text('PDF report or CSV, all or one category'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => exportTransactions(context, ref),
                 ),

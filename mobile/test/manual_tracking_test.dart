@@ -502,6 +502,22 @@ void main() {
     expect(find.textContaining('500 of 5,000'), findsOneWidget);
   });
 
+  testWidgets('insights: share a category opens the export sheet set to that category, PDF', (tester) async {
+    final now = DateTime.now();
+    await pumpApp(tester, '/insights', txns: [txn('Lunch', now, 50000, cat: 'cat-coffee')]);
+    await tester.ensureVisible(find.text('Food'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Food'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('share-category')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Only Food'), findsOneWidget);
+    expect(find.text('Show the total of these items'), findsOneWidget, reason: 'PDF is preselected');
+    final toggle = tester.widget<SwitchListTile>(find.byKey(const Key('export-total')));
+    expect(toggle.value, isFalse, reason: 'totals stay private unless asked');
+  });
+
   testWidgets('transactions: grouped by day, filtered by type, full swipe deletes with undo', (tester) async {
     final today = DateTime.now();
     final yesterday = today.subtract(const Duration(days: 1));

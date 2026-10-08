@@ -9,6 +9,7 @@ import '../../domain/category.dart';
 import '../../domain/transaction.dart';
 import '../../providers.dart';
 import '../../widgets/swipe_txn_tile.dart';
+import '../export/csv_export.dart';
 
 /// One category's transactions in a period (its sub-categories included).
 /// [categoryId] null = uncategorized.
@@ -35,7 +36,23 @@ class CategoryPeriodScreen extends ConsumerWidget {
     final name = categoryId == null ? 'Uncategorized' : categories[categoryId]?.name ?? 'Category';
 
     return Scaffold(
-      appBar: AppBar(title: Text(name), centerTitle: true),
+      appBar: AppBar(
+        title: Text(name),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            key: const Key('share-category'),
+            tooltip: 'Share these',
+            icon: const Icon(Icons.ios_share),
+            onPressed: () => exportTransactions(
+              context,
+              ref,
+              categoryId: categoryId,
+              range: (label: periods.label(period), from: period.start, to: period.end),
+            ),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -12,6 +13,8 @@ import '../../domain/account.dart';
 import '../../domain/category.dart';
 import '../../domain/transaction.dart';
 import '../../providers.dart';
+import '../insights/category_period_screen.dart';
+import 'pdf_report.dart';
 
 /// A date range to export; `from` inclusive, `to` exclusive, null = open.
 typedef ExportRange = ({String label, DateTime? from, DateTime? to});
@@ -73,51 +76,156 @@ String _cell(String v) {
   return RegExp(r'[",\r\n]').hasMatch(s) ? '"${s.replaceAll('"', '""')}"' : s;
 }
 
-/// Asks for a range, writes the CSV to a temp file and opens the share sheet.
-/// Works offline: everything comes from the phone.
-Future<void> exportTransactions(BuildContext context, WidgetRef ref) async {
-  final range = await showModalBottomSheet<ExportRange>(
-    context: context,
-    showDragHandle: true,
-    builder: (context) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 8),
-            child: Text('Export transactions (CSV)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-          ),
-          for (final r in exportRanges(DateTime.now()))
-            ListTile(key: Key('export-${r.label}'), title: Text(r.label), onTap: () => Navigator.pop(context, r)),
-        ],
-      ),
-    ),
-  );
-  if (range == null || !context.mounted) return;
+enum ExportFormat { pdf, csv }
 
-  final messenger = ScaffoldMessenger.of(context);
-  final box = context.findRenderObject() as RenderBox?;
-  final txns = await ref.read(transactionRepositoryProvider).watch(from: range.from, to: range.to).first;
-  if (txns.isEmpty) {
-    messenger.showSnackBar(SnackBar(content: Text('No transactions in ${range.label.toLowerCase()}.')));
-    return;
+/// Export or share transactions: pick a range, optionally one category (e.g.
+/// Business), and PDF (a clean report for someone else, without your totals)
+/// or CSV (for spreadsheets). Works offline: everything comes from the phone.
+/// [categoryId] and [range] pre-fill the sheet (from a category in Insights).
+Future<void> exportTransactions(BuildContext context, WidgetRef ref, {String? categoryId, ExportRange? range}) =>
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _ExportSheet(categoryId: categoryId, range: range),
+    );
+
+class _ExportSheet extends ConsumerStatefulWidget {
+  const _ExportSheet({this.categoryId, this.range});
+
+  final String? categoryId;
+  final ExportRange? range;
+
+  @override
+  ConsumerState<_ExportSheet> createState() => _ExportSheetState();
+}
+
+class _ExportSheetState extends ConsumerState<_ExportSheet> {
+  late final List<ExportRange> _ranges = [?widget.range, ...exportRanges(DateTime.now())];
+  late ExportRange _range = _ranges.first;
+  late String? _categoryId = widget.categoryId;
+  late ExportFormat _format = widget.categoryId != null ? ExportFormat.pdf : ExportFormat.csv;
+  bool _includeTotal = false;
+  bool _busy = false;
+
+  Future<void> _export() async {
+    setState(() => _busy = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final box = context.findRenderObject() as RenderBox?;
+    try {
+      final categories = ref.read(categoryByIdProvider).value ?? const {};
+      final accounts = {for (final a in ref.read(accountsProvider).value ?? const <Account>[]) a.id: a};
+      var txns = await ref.read(transactionRepositoryProvider).watch(from: _range.from, to: _range.to).first;
+      if (_categoryId != null) {
+        txns = [
+          for (final t in txns)
+            if (t.type != TransactionType.transfer && CategoryPeriodScreen.belongs(t, _categoryId, categories)) t,
+        ];
+      }
+      if (txns.isEmpty) {
+        messenger.showSnackBar(const SnackBar(content: Text('Nothing to export for this choice.')));
+        return;
+      }
+
+      final categoryName = _categoryId == null ? null : categories[_categoryId]?.name;
+      final slug = [
+        categoryName ?? 'transactions',
+        _range.label,
+      ].join('-').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-').replaceAll(RegExp(r'^-|-$'), '');
+      final dir = await getTemporaryDirectory();
+      final XFile file;
+      if (_format == ExportFormat.pdf) {
+        final bytes = await buildReportPdf(
+          title: categoryName == null ? 'Transactions' : '$categoryName expenses',
+          rangeLabel: _range.label,
+          transactions: txns,
+          categories: categories,
+          latinFont: await rootBundle.load('assets/fonts/NotoSans-Regular.ttf'),
+          ethiopicFont: await rootBundle.load('assets/fonts/NotoSansEthiopic-Regular.ttf'),
+          includeTotal: _includeTotal,
+        );
+        final f = File('${dir.path}/$slug.pdf');
+        await f.writeAsBytes(bytes);
+        file = XFile(f.path, mimeType: 'application/pdf');
+      } else {
+        final f = File('${dir.path}/$slug.csv');
+        await f.writeAsString(buildCsv(txns, categories, accounts), encoding: utf8);
+        file = XFile(f.path, mimeType: 'text/csv');
+      }
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [file],
+          subject: '${categoryName ?? 'Transactions'}: ${_range.label}',
+          sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+        ),
+      );
+      if (mounted) Navigator.pop(context);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
-  final categories = ref.read(categoryByIdProvider).value ?? const {};
-  final accounts = {for (final a in ref.read(accountsProvider).value ?? const <Account>[]) a.id: a};
 
-  final dir = await getTemporaryDirectory();
-  final stamp = DateTime.now();
-  final name =
-      'transactions-${range.label.toLowerCase().replaceAll(' ', '-')}-'
-      '${stamp.year}${stamp.month.toString().padLeft(2, '0')}${stamp.day.toString().padLeft(2, '0')}.csv';
-  final file = File('${dir.path}/$name');
-  await file.writeAsString(buildCsv(txns, categories, accounts), encoding: utf8);
-
-  await SharePlus.instance.share(
-    ShareParams(
-      files: [XFile(file.path, mimeType: 'text/csv')],
-      subject: 'Transactions: ${range.label}',
-      sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
-    ),
-  );
+  @override
+  Widget build(BuildContext context) {
+    final categories = (ref.watch(categoriesProvider).value ?? const <Category>[]).where((c) => c.isTopLevel).toList();
+    final known = _categoryId == null || categories.any((c) => c.id == _categoryId);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Export or share', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<ExportRange>(
+              key: const Key('export-range'),
+              initialValue: _range,
+              decoration: const InputDecoration(labelText: 'When'),
+              items: [for (final r in _ranges) DropdownMenuItem(value: r, child: Text(r.label))],
+              onChanged: (r) => setState(() => _range = r ?? _range),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String?>(
+              key: const Key('export-category'),
+              initialValue: known ? _categoryId : null,
+              decoration: const InputDecoration(labelText: 'What'),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('All transactions')),
+                for (final c in categories) DropdownMenuItem(value: c.id, child: Text('Only ${c.name}')),
+              ],
+              onChanged: (id) => setState(() => _categoryId = id),
+            ),
+            const SizedBox(height: 16),
+            SegmentedButton<ExportFormat>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: ExportFormat.pdf, label: Text('PDF report'), icon: Icon(Icons.picture_as_pdf)),
+                ButtonSegment(value: ExportFormat.csv, label: Text('CSV'), icon: Icon(Icons.table_chart_outlined)),
+              ],
+              selected: {_format},
+              onSelectionChanged: (s) => setState(() => _format = s.single),
+            ),
+            if (_format == ExportFormat.pdf) ...[
+              SwitchListTile(
+                key: const Key('export-total'),
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Show the total of these items'),
+                subtitle: const Text('Your balance and other spending are never included.'),
+                value: _includeTotal,
+                onChanged: (v) => setState(() => _includeTotal = v),
+              ),
+            ] else
+              const SizedBox(height: 12),
+            FilledButton.icon(
+              key: const Key('export-go'),
+              onPressed: _busy ? null : _export,
+              icon: const Icon(Icons.ios_share),
+              label: Text(_busy ? 'Preparing…' : 'Share'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

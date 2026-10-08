@@ -17,6 +17,7 @@ dependencies:
   isar_community: ^3.3.2
   isar_community_flutter_libs: ^3.3.2
   path_provider: ^2.1.6
+  pdf: ^3.13.1
   share_plus: ^13.3.1
   supabase_flutter: ^2.18.0
   uuid: ^4.6.0
@@ -30,3 +31,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    # Embedded in PDF reports so Amharic shows (SIL Open Font License).
+    - assets/fonts/NotoSans-Regular.ttf
+    - assets/fonts/NotoSansEthiopic-Regular.ttf
