@@ -3,7 +3,7 @@
 // scoped to the user explicitly.
 
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
-import type { AiSuggestion } from "./categorizer.ts";
+import type { AiSuggestion, RuleField } from "./categorizer.ts";
 import type { DedupCandidate } from "./dedup.ts";
 import { matchKey } from "./normalizer.ts";
 import type { Channel, IngestStore, NewTransaction, RawMessagePatch } from "./pipeline.ts";
@@ -207,10 +207,10 @@ export class SupabaseIngestStore implements IngestStore {
     if (Object.keys(patch).length) check(await this.db.from("transactions").update(patch).eq("id", id));
   }
 
-  async userRuleCategoryId(userId: string, counterpartyKey: string) {
+  async userRuleCategoryId(userId: string, field: RuleField, value: string) {
     const rule = check(
       await this.db.from("categorization_rules").select("category_id")
-        .eq("user_id", userId).eq("match_field", "counterparty").eq("match_value", counterpartyKey)
+        .eq("user_id", userId).eq("match_field", field).eq("match_value", value)
         .is("deleted_at", null).maybeSingle(),
     );
     return (rule?.category_id as string | undefined) ?? null;

@@ -30,6 +30,9 @@ class LocalTransaction {
 
   String? counterpartyName;
   String? counterpartyKind;
+
+  /// Masked, as the bank shows it: `2519****1122`, `****3307`.
+  String? counterpartyAccount;
   String? categoryId;
   String? categorySource;
   String? description;
@@ -43,6 +46,11 @@ class LocalTransaction {
   DateTime? deletedAt;
   int serverVersion = 0;
   late DateTime updatedAt;
+
+  // Phone-only: reading the bank receipt behind the SMS link. Not synced, so
+  // each phone reads a receipt at most once (see ReceiptEnricher).
+  DateTime? receiptCheckedAt;
+  int receiptAttempts = 0;
 }
 
 @collection
@@ -117,6 +125,51 @@ class OutboxOp {
   late DateTime createdAt;
   int attempts = 0;
   String? lastError;
+}
+
+/// A finance goal (synced, table finance_goals). Repeats every week or month.
+@collection
+class LocalGoal {
+  Id isarId = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late String uuid;
+
+  /// spend_max | earn_min | save_min
+  late String kind;
+
+  /// week | month
+  late String period;
+
+  /// Santim.
+  late int amount;
+
+  /// Spending goals only: limit to one category (and its sub-categories).
+  String? categoryId;
+  bool isActive = true;
+  DateTime? deletedAt;
+  int serverVersion = 0;
+  late DateTime updatedAt;
+}
+
+/// Phone-only display preferences (single row). Not synced: how a phone
+/// shows dates is a per-device choice.
+@collection
+class LocalPrefs {
+  Id id = 0;
+
+  /// gregorian | ethiopian
+  String calendar = 'gregorian';
+  bool weekStartsMonday = true;
+}
+
+/// The coach's last answer (single row, phone-only), shown offline until
+/// the next refresh.
+@collection
+class LocalCoachNote {
+  Id id = 0;
+  late String adviceJson;
+  late DateTime createdAt;
 }
 
 /// Single row holding the pull cursor.

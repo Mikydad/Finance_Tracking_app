@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/periods.dart';
 import '../../core/theme.dart';
 import '../../data/sync/sync_engine.dart';
+import '../export/csv_export.dart';
 import '../../providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -31,6 +33,36 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
+          if (hasBackend) ...[
+            Text('Transaction sources', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Card(
+              child: Column(
+                children: [
+                  ListTile(
+                    key: const Key('shortcut-setup'),
+                    leading: const Icon(Icons.bolt_outlined),
+                    title: const Text('iPhone Shortcut'),
+                    subtitle: Text(switch (ref.watch(ingestionTokensProvider).value) {
+                      null => ' ',
+                      [] => 'Not set up',
+                      final keys => keys.any((k) => k.lastUsedAt != null) ? 'Connected' : 'Key created, not used yet',
+                    }),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/settings/shortcut'),
+                  ),
+                  ListTile(
+                    key: const Key('paste-sms'),
+                    leading: const Icon(Icons.sms_outlined),
+                    title: const Text('Paste bank SMS'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/paste'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           Card(
             child: Column(
               children: [
@@ -41,6 +73,22 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/categories'),
                 ),
+                ListTile(
+                  key: const Key('goals'),
+                  leading: const Icon(Icons.flag_outlined),
+                  title: const Text('Goals'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/goals'),
+                ),
+                ListTile(
+                  key: const Key('export-csv'),
+                  leading: const Icon(Icons.file_download_outlined),
+                  title: const Text('Export or share'),
+                  subtitle: const Text('PDF report or CSV, all or one category'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => exportTransactions(context, ref),
+                ),
+                _CalendarSettings(),
                 const ListTile(
                   leading: Icon(Icons.payments_outlined),
                   title: Text('Currency'),
@@ -62,6 +110,50 @@ class SettingsScreen extends ConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Calendar (Gregorian or Ethiopian months) and the first day of the week,
+/// used by Home, Insights and goals. Saved on this phone.
+class _CalendarSettings extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prefs = ref.watch(calendarPrefsProvider).value ?? const CalendarPrefs();
+    final repo = ref.read(prefsRepositoryProvider);
+    return Column(
+      children: [
+        ListTile(
+          key: const Key('calendar'),
+          leading: const Icon(Icons.calendar_month_outlined),
+          title: const Text('Calendar'),
+          trailing: DropdownButton<CalendarKind>(
+            value: prefs.calendar,
+            underline: const SizedBox.shrink(),
+            items: const [
+              DropdownMenuItem(value: CalendarKind.gregorian, child: Text('Gregorian')),
+              DropdownMenuItem(value: CalendarKind.ethiopian, child: Text('Ethiopian')),
+            ],
+            onChanged: (c) =>
+                c == null ? null : repo.save(CalendarPrefs(calendar: c, weekStartsMonday: prefs.weekStartsMonday)),
+          ),
+        ),
+        ListTile(
+          key: const Key('week-start'),
+          leading: const Icon(Icons.view_week_outlined),
+          title: const Text('Week starts on'),
+          trailing: DropdownButton<bool>(
+            value: prefs.weekStartsMonday,
+            underline: const SizedBox.shrink(),
+            items: const [
+              DropdownMenuItem(value: true, child: Text('Monday')),
+              DropdownMenuItem(value: false, child: Text('Sunday')),
+            ],
+            onChanged: (monday) =>
+                monday == null ? null : repo.save(CalendarPrefs(calendar: prefs.calendar, weekStartsMonday: monday)),
+          ),
+        ),
+      ],
     );
   }
 }

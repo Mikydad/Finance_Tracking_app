@@ -10,6 +10,9 @@ const localSchemas = [
   LocalSourceSchema,
   OutboxOpSchema,
   SyncStateSchema,
+  LocalPrefsSchema,
+  LocalGoalSchema,
+  LocalCoachNoteSchema,
 ];
 
 Future<Isar> openLocalDb() async {

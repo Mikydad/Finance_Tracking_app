@@ -1,11 +1,14 @@
 // Picks a category for a parsed transaction (build plan 4.3):
-//   1. the user's own rule for this counterparty (always wins)
+//   1. the user's own rule for this counterparty, by account then name (always wins)
 //   2. built-in merchant map
 //   3. shared AI cache for this merchant
 //   4. AI call for unknown merchants (never for people, never raw SMS)
 //   5. fallback with low confidence -> review queue
 
 import type { CounterpartyKind, TransactionType } from "./types.ts";
+
+/** What a user's rule matches on (categorization_rules.match_field). */
+export type RuleField = "counterparty" | "counterparty_account";
 
 export type CategorySource = "user" | "rule" | "merchant_map" | "keyword" | "ai" | "fallback";
 
@@ -24,6 +27,8 @@ export interface CategorizeInput {
   amount: number;
   counterpartyName: string | null;
   counterpartyKey: string | null;
+  /** accountKey() of the other side's masked account, when the SMS has one. */
+  counterpartyAccountKey: string | null;
   counterpartyKind: CounterpartyKind;
   description: string | null;
 }
@@ -49,7 +54,7 @@ export interface AiCategorizer {
 }
 
 export interface CategoryStore {
-  userRuleCategoryId(userId: string, counterpartyKey: string): Promise<string | null>;
+  userRuleCategoryId(userId: string, field: RuleField, value: string): Promise<string | null>;
   cachedSuggestion(counterpartyKey: string): Promise<AiSuggestion | null>;
   saveSuggestion(counterpartyKey: string, suggestion: AiSuggestion): Promise<void>;
 }
@@ -103,9 +108,14 @@ export async function categorize(
 ): Promise<CategoryChoice> {
   const key = input.counterpartyKey;
 
-  // 1. User rules
-  if (key) {
-    const ruleCategory = await store.userRuleCategoryId(input.userId, key);
+  // 1. User rules: the account number is the surer match, then the name.
+  const rules: [RuleField, string | null][] = [
+    ["counterparty_account", input.counterpartyAccountKey],
+    ["counterparty", key],
+  ];
+  for (const [field, value] of rules) {
+    if (!value) continue;
+    const ruleCategory = await store.userRuleCategoryId(input.userId, field, value);
     if (ruleCategory) return { categoryKey: null, categoryId: ruleCategory, source: "rule", confidence: 1 };
   }
 

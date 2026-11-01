@@ -1,4 +1,4 @@
-package et.financeapp.finance_app
+package com.mikydad.financeapp
 
 import io.flutter.embedding.android.FlutterActivity
 

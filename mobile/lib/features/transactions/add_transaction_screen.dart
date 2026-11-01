@@ -11,6 +11,7 @@ import '../../domain/category.dart';
 import '../../domain/transaction.dart';
 import '../../providers.dart';
 import '../../widgets/category_icon.dart';
+import '../categories/categories_screen.dart';
 
 /// Add a transaction fast: amount first, then (optionally) what it was and a
 /// category. Passing [existing] turns it into the edit screen.
@@ -102,6 +103,17 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     });
   }
 
+  /// "+ New" in the grid: create a category without leaving the form, and
+  /// select it.
+  Future<void> _newCategory() async {
+    final created = await showCategoryEditor(
+      context,
+      ref,
+      initialKind: _type == TransactionType.income ? CategoryKind.income : CategoryKind.expense,
+    );
+    if (created != null && mounted) setState(() => _categoryId = created.id);
+  }
+
   Future<String?> _resolveAccount() async {
     if (_accountId != null) return _accountId;
     final repo = ref.read(accountRepositoryProvider);
@@ -186,6 +198,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             onPressed: () => Navigator.of(context).maybePop(),
           ),
           title: Text(_editing ? 'Edit transaction' : 'Add transaction'),
+          actions: [
+            if (!_editing && ref.watch(configProvider).hasBackend)
+              IconButton(
+                key: const Key('from-sms'),
+                tooltip: 'Paste bank SMS',
+                icon: const Icon(Icons.sms_outlined),
+                onPressed: () => context.push('/paste'),
+              ),
+          ],
           centerTitle: true,
         ),
         body: SafeArea(
@@ -237,14 +258,12 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               const SizedBox(height: 24),
               Text('Category', style: theme.textTheme.titleSmall?.copyWith(color: AppColors.muted)),
               const SizedBox(height: 12),
-              if (categories.isEmpty)
-                const Text('Categories appear after the first sync.', style: TextStyle(color: AppColors.muted))
-              else
-                _CategoryGrid(
-                  categories: categories,
-                  selectedId: _categoryId,
-                  onSelected: (id) => setState(() => _categoryId = _categoryId == id ? null : id),
-                ),
+              _CategoryGrid(
+                categories: categories,
+                selectedId: _categoryId,
+                onSelected: (id) => setState(() => _categoryId = _categoryId == id ? null : id),
+                onNew: _newCategory,
+              ),
               const SizedBox(height: 24),
               Text('Date', style: theme.textTheme.titleSmall?.copyWith(color: AppColors.muted)),
               const SizedBox(height: 8),
@@ -268,7 +287,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 controller: _notes,
                 onChanged: (_) => setState(() {}),
                 maxLines: 2,
-                decoration: const InputDecoration(hintText: 'Add a note (optional)'),
+                decoration: const InputDecoration(hintText: 'Reason (optional)'),
               ),
               const SizedBox(height: 28),
               FilledButton(
@@ -285,11 +304,17 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 }
 
 class _CategoryGrid extends StatelessWidget {
-  const _CategoryGrid({required this.categories, required this.selectedId, required this.onSelected});
+  const _CategoryGrid({
+    required this.categories,
+    required this.selectedId,
+    required this.onSelected,
+    required this.onNew,
+  });
 
   final List<Category> categories;
   final String? selectedId;
   final ValueChanged<String> onSelected;
+  final VoidCallback onNew;
 
   @override
   Widget build(BuildContext context) {
@@ -303,6 +328,25 @@ class _CategoryGrid extends StatelessWidget {
       children: [
         for (final c in categories)
           _CategoryCell(category: c, selected: c.id == selectedId, onTap: () => onSelected(c.id)),
+        InkWell(
+          key: const Key('new-category'),
+          borderRadius: BorderRadius.circular(AppRadii.card),
+          onTap: onNew,
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadii.card),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add, size: 28, color: AppColors.primary),
+                SizedBox(height: 6),
+                Text('New', style: TextStyle(fontSize: 12, color: AppColors.primary)),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }

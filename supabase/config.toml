@@ -250,6 +250,12 @@ otp_expiry = 3600
 subject = "Your Finance app code"
 content_path = "./supabase/templates/confirmation.html"
 
+# Password reset also uses a code typed into the app.
+# The hosted project needs the same template: Authentication > Emails > Reset password.
+[auth.email.template.recovery]
+subject = "Your Finance app password reset code"
+content_path = "./supabase/templates/recovery.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"
@@ -423,4 +429,8 @@ enabled = true
 # The Shortcut authenticates with an ingestion token, not a Supabase JWT,
 # so the ingest function checks auth itself (user JWT or ingestion token).
 [functions.ingest]
+verify_jwt = false
+
+# Checks the user's session itself (auth.getUser), like ingest.
+[functions.coach]
 verify_jwt = false

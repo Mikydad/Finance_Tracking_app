@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../../core/dates.dart';
 import '../../core/theme.dart';
 import '../../domain/transaction.dart';
 import '../../providers.dart';
-import '../../widgets/txn_tile.dart';
-import 'delete_with_undo.dart';
+import '../../widgets/swipe_txn_tile.dart';
 
 /// History grouped by day, with All / Expenses / Income / Transfers filters.
-/// Swipe left to delete.
+/// Swipe left to edit or delete.
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
 
@@ -67,32 +66,19 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   );
                 }
                 final rows = _groupByDay(list);
-                return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  itemCount: rows.length,
-                  itemBuilder: (context, i) => switch (rows[i]) {
-                    DateTime day => Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                      child: Text(dayLabel(day), style: Theme.of(context).textTheme.titleSmall),
-                    ),
-                    Txn t => Dismissible(
-                      key: ValueKey(t.id),
-                      direction: DismissDirection.endToStart,
-                      background: Container(
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 24),
-                        color: AppColors.danger,
-                        child: const Icon(Icons.delete_outline, color: Colors.white),
+                return SlidableAutoCloseBehavior(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    itemCount: rows.length,
+                    itemBuilder: (context, i) => switch (rows[i]) {
+                      DateTime day => Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                        child: Text(dayLabel(day), style: Theme.of(context).textTheme.titleSmall),
                       ),
-                      onDismissed: (_) => deleteWithUndo(context, ref, t.id),
-                      child: TxnTile(
-                        txn: t,
-                        categories: categories,
-                        onTap: () => context.push('/transactions/${t.id}'),
-                      ),
-                    ),
-                    _ => const SizedBox.shrink(),
-                  },
+                      Txn t => SwipeTxnTile(txn: t, categories: categories),
+                      _ => const SizedBox.shrink(),
+                    },
+                  ),
                 );
               },
             ),

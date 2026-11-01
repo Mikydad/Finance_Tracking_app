@@ -22,6 +22,9 @@ String dayLabel(DateTime d, {DateTime? now}) {
   return date;
 }
 
+/// "Oct 5, 2026".
+String shortDate(DateTime d) => '${_short(d.month)} ${d.day}, ${d.year}';
+
 /// "October 5, 2026".
 String longDate(DateTime d) => '${monthName(d.month)} ${d.day}, ${d.year}';
 

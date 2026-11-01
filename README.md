@@ -51,6 +51,15 @@ supabase functions serve ingest --env-file supabase/.env.local
 ```
 
 `supabase/.env.local` needs `RAW_MESSAGE_KEY` (32 random bytes, base64: `openssl rand -base64 32`).
+Add `OPENAI_API_KEY` to have unknown merchants categorized by AI; without it they land in review as "Other".
+`OPENAI_MODEL` overrides the model (default `gpt-6-luna`, see `supabase/functions/_shared/ai.ts`).
+
+On the hosted project, set the key once as a secret (it never goes in the repo):
+
+```sh
+supabase secrets set OPENAI_API_KEY=<your key>
+supabase functions deploy ingest
+```
 
 ## The ingest endpoint
 

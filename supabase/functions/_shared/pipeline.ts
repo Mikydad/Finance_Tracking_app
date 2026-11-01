@@ -4,7 +4,7 @@
 
 import { type AiCategorizer, categorize, type CategoryStore, REVIEW_THRESHOLD } from "./categorizer.ts";
 import { decideDuplicate, type DedupCandidate } from "./dedup.ts";
-import { counterpartyKind, displayName, matchKey } from "./normalizer.ts";
+import { accountKey, counterpartyKind, displayName, matchKey } from "./normalizer.ts";
 import { parseMessage } from "./parsers/registry.ts";
 import type { CounterpartyKind, Institution, TransactionType } from "./types.ts";
 
@@ -152,6 +152,7 @@ export async function ingestMessage(store: IngestStore, req: IngestRequest, deps
       amount: p.amount,
       counterpartyName: name,
       counterpartyKey: key,
+      counterpartyAccountKey: accountKey(p.counterpartyAccount),
       counterpartyKind: kind,
       description: p.description,
     },
