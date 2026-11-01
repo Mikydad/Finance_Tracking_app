@@ -25,7 +25,12 @@ class FakeAuth extends GoTrueClient {
   }
 
   @override
-  Future<AuthResponse> signInWithPassword({String? email, String? phone, required String password, String? captchaToken}) async {
+  Future<AuthResponse> signInWithPassword({
+    String? email,
+    String? phone,
+    required String password,
+    String? captchaToken,
+  }) async {
     calls.add('signIn $email');
     if (!confirmed) throw AuthException('Email not confirmed', code: 'email_not_confirmed', statusCode: '400');
     return AuthResponse();
@@ -56,6 +61,25 @@ class FakeAuth extends GoTrueClient {
   }) async {
     calls.add('resend ${type.name} $email');
     return ResendResponse();
+  }
+
+  @override
+  Future<void> resetPasswordForEmail(String email, {String? redirectTo, String? captchaToken}) async {
+    calls.add('reset $email');
+  }
+
+  AuthException? updateError;
+
+  @override
+  Future<UserResponse> updateUser(UserAttributes attributes, {String? emailRedirectTo}) async {
+    calls.add('update password ${attributes.password}');
+    if (updateError != null) throw updateError!;
+    return UserResponse.fromJson({'id': 'user-1'});
+  }
+
+  @override
+  Future<void> signOut({SignOutScope scope = SignOutScope.local}) async {
+    calls.add('signOut');
   }
 }
 
@@ -100,5 +124,72 @@ void main() {
 
     expect(find.text('Check your email'), findsOneWidget);
     expect(auth.calls, ['signIn miko@example.com', 'resend signup miko@example.com']);
+  });
+
+  Future<void> startReset(WidgetTester tester) async {
+    await tester.enterText(find.byKey(const Key('email')), ' miko@example.com ');
+    await tester.tap(find.text('Forgot password?'));
+    await tester.pump();
+    expect(find.text('Reset your password'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('send-reset-code')));
+    await tester.pumpAndSettle();
+    expect(find.text('Check your email'), findsOneWidget);
+  }
+
+  Future<void> submitReset(WidgetTester tester, {required String code, required String password}) async {
+    await tester.enterText(find.byKey(const Key('code')), code);
+    await tester.enterText(find.byKey(const Key('new-password')), password);
+    await tester.tap(find.byKey(const Key('reset')));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('forgot password: emailed code, then a new password', (tester) async {
+    final auth = await pump(tester);
+    await startReset(tester);
+
+    await submitReset(tester, code: '123456', password: 'short');
+    expect(find.text('Use at least 6 characters.'), findsOneWidget);
+
+    await submitReset(tester, code: '000000', password: 'new-long-password');
+    expect(find.text('Token has expired or is invalid'), findsOneWidget);
+
+    await submitReset(tester, code: '123456', password: 'new-long-password');
+    expect(auth.calls, [
+      'reset miko@example.com',
+      'verify recovery miko@example.com 000000',
+      'verify recovery miko@example.com 123456',
+      'update password new-long-password',
+    ]);
+  });
+
+  testWidgets('forgot password: asks for the email first', (tester) async {
+    final auth = await pump(tester);
+    await tester.tap(find.text('Forgot password?'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('send-reset-code')));
+    await tester.pumpAndSettle();
+    expect(find.text('Enter your email first.'), findsOneWidget);
+    expect(auth.calls, isEmpty);
+  });
+
+  testWidgets('forgot password: a rejected new password signs out again and explains', (tester) async {
+    final auth = await pump(tester);
+    auth.updateError = AuthException('Password is known to be weak.', code: 'weak_password', statusCode: '422');
+    await startReset(tester);
+
+    await submitReset(tester, code: '123456', password: 'password123');
+    expect(auth.calls.last, 'signOut');
+    expect(find.text('Reset your password'), findsOneWidget);
+    expect(find.textContaining("Your password wasn't changed: Password is known to be weak."), findsOneWidget);
+  });
+
+  testWidgets('forgot password: reusing the old password is not an error', (tester) async {
+    final auth = await pump(tester);
+    auth.updateError = AuthException('New password should be different.', code: 'same_password', statusCode: '422');
+    await startReset(tester);
+
+    await submitReset(tester, code: '123456', password: 'old-password');
+    expect(auth.calls.last, 'update password old-password');
+    expect(find.byKey(const Key('message')), findsNothing);
   });
 }
