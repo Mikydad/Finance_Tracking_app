@@ -6,6 +6,7 @@
 // ingestion token from the iPhone Shortcut (Authorization: Bearer fin_...).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { OpenAiCategorizer } from "../_shared/ai.ts";
 import { encryptText, importKey, sha256Hex } from "../_shared/crypto.ts";
 import { type Channel, ingestMessage } from "../_shared/pipeline.ts";
 import { SupabaseIngestStore } from "../_shared/supabase_store.ts";
@@ -17,6 +18,9 @@ const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SE
   auth: { persistSession: false, autoRefreshToken: false },
 });
 const keyPromise = importKey(Deno.env.get("RAW_MESSAGE_KEY") ?? "");
+// Without OPENAI_API_KEY, unknown merchants fall back to "Other" for review.
+const openAiKey = Deno.env.get("OPENAI_API_KEY");
+const ai = openAiKey ? new OpenAiCategorizer(openAiKey, { model: Deno.env.get("OPENAI_MODEL") }) : undefined;
 
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -66,7 +70,7 @@ Deno.serve(async (req) => {
     const result = await ingestMessage(
       new SupabaseIngestStore(db),
       { userId, channel, text, sender, receivedAt },
-      { encrypt: (plain) => encryptText(key, plain) },
+      { encrypt: (plain) => encryptText(key, plain), ai },
     );
     return json(200, result);
   } catch (err) {
