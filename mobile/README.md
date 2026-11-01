@@ -16,12 +16,13 @@ lib/
 
 ```sh
 flutter pub get
-flutter run \
-  --dart-define=SUPABASE_URL=https://hpswkgmcxhrrbsnlbbdl.supabase.co \
-  --dart-define=SUPABASE_PUBLISHABLE_KEY=<publishable key>
+flutter run
 ```
 
-Without the two defines the app runs local-only, with no sign-in.
+The app connects to the project's hosted Supabase by default (URL and publishable key in
+`lib/core/config.dart`), so Xcode's Run button works too. To use another Supabase project, pass
+`--dart-define=SUPABASE_URL=...` and `--dart-define=SUPABASE_PUBLISHABLE_KEY=...`; passing both as
+empty strings runs the app local-only, with no sign-in.
 
 ## Code generation and tests
 
