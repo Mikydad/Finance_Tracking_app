@@ -13,12 +13,14 @@ import 'package:go_router/go_router.dart';
 class FakeCapture implements CaptureApi {
   IngestResult next = const IngestCreated('tx-1');
   final sent = <(String, String?)>[];
+  final receivedAts = <DateTime?>[];
   final keys = <IngestionToken>[];
   final revoked = <String>[];
 
   @override
   Future<IngestResult> ingest({required String text, String? sender, DateTime? receivedAt}) async {
     sent.add((text, sender));
+    receivedAts.add(receivedAt);
     return next;
   }
 
@@ -97,6 +99,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(api.sent.single, ('Dear Customer, your account has been debited with ETB 500.00', 'CBE'));
+    expect(api.receivedAts.single, isNull, reason: 'just now unless changed');
     expect(find.text('Added'), findsOneWidget);
     await tester.tap(find.text('View transaction'));
     await tester.pumpAndSettle();
@@ -139,5 +142,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(api.revoked, ['k0']);
     expect(find.textContaining('not used yet'), findsNothing);
+  });
+
+  testWidgets('paste: an older SMS can be dated to when it arrived', (tester) async {
+    final api = FakeCapture();
+    await pump(tester, api, const PasteSmsScreen());
+    await tester.enterText(
+      find.byKey(const Key('sms-text')),
+      'Dear Customer, your account has been debited with ETB 500.00',
+    );
+    await tester.pump();
+
+    // Yesterday, unless that's in last month (the picker opens on this month).
+    final now = DateTime.now();
+    final yesterday = now.day > 1 ? now.subtract(const Duration(days: 1)) : now;
+    await tester.tap(find.byKey(const Key('received-at')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('${yesterday.day}').last);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK')); // keep the suggested time
+    await tester.pumpAndSettle();
+    expect(find.textContaining(now.day > 1 ? 'Yesterday, ' : 'Today, '), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const Key('send')));
+    await tester.tap(find.byKey(const Key('send')));
+    await tester.pumpAndSettle();
+    final sentAt = api.receivedAts.single!;
+    expect((sentAt.year, sentAt.month, sentAt.day), (yesterday.year, yesterday.month, yesterday.day));
   });
 }
